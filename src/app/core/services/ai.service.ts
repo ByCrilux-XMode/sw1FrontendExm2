@@ -1,7 +1,6 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { Observable, map } from 'rxjs';
-
+import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { Observable } from 'rxjs';
 @Injectable({ providedIn: 'root' })
 export class AiService {
     private http = inject(HttpClient);
@@ -9,6 +8,12 @@ export class AiService {
     private readonly OLLAMA_URL = 'https://jeffry-sorriest-benny.ngrok-free.dev/api/generate';
 
     enviarConsulta(prompt: string, esquemaActual: any): Observable<any> {
+
+        const headers = new HttpHeaders({
+            'Content-Type': 'application/json',
+            'ngrok-skip-browser-warning': 'true'
+        });
+
         const systemInstruction = `
       Eres un arquitecto de software experto en GoJS.
       Recibirás un esquema JSON de un diagrama de flujo y una instrucción del usuario.
@@ -38,6 +43,6 @@ export class AiService {
             prompt: fullPrompt,
             system: systemInstruction,
             stream: false
-        });
+        }, { headers: headers });
     }
 }
