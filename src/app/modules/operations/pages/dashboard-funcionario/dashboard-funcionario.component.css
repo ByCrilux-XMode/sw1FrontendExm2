@@ -1,0 +1,38 @@
+.nav-tabs .nav-link {
+    cursor: pointer;
+    color: #c9d1d9;
+    border: none;
+    border-bottom: 2px solid transparent;
+  }
+  
+  .nav-tabs .nav-link:hover {
+    border-color: #30363d;
+  }
+  
+  .nav-tabs .nav-link.active {
+    color: #58a6ff;
+    background-color: transparent;
+    border-color: #58a6ff;
+    font-weight: bold;
+  }
+  
+  .task-item {
+    background-color: #21262d;
+    border-left: 4px solid transparent;
+    padding: 15px;
+    margin-bottom: 15px;
+    border-radius: 6px;
+  }
+  
+  .task-item.border-warning { border-left-color: #ffc107; }
+  .task-item.border-success { border-left-color: #198754; }
+  .task-item.border-secondary { border-left-color: #6c757d; }
+  
+  .opacity-50 {
+    opacity: 0.6;
+  }
+  
+  h5 {
+    margin-top: 0;
+    color: #e6edf3;
+  }

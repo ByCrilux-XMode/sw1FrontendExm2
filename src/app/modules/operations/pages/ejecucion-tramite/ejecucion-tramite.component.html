@@ -1,0 +1,107 @@
+<div class="ejecucion-container">
+  <!-- COLUMNA IZQUIERDA: DIAGRAMA -->
+  <div class="diagram-section">
+    <h3>Estado del Trámite</h3>
+    <p *ngIf="tramite?.estadoActual === 'FINALIZADO'" class="finalizado-text">
+      Este trámite ha finalizado correctamente.
+    </p>
+    <gojs-diagram
+      [initDiagram]="initDiagram"
+      [nodeDataArray]="diagramNodeData"
+      [linkDataArray]="diagramLinkData"
+      [divClassName]="diagramDivClassName">
+    </gojs-diagram>
+  </div>
+
+  <!-- COLUMNA DERECHA: TAREAS ACTIVAS -->
+  <div class="tasks-section" *ngIf="tramite?.estadoActual !== 'FINALIZADO'">
+    <h2>Bandeja de Tareas Activas</h2>
+    
+    <div *ngIf="nodosActivos.length === 0" class="no-tasks">
+      Cargando tareas o esperando asignación...
+    </div>
+
+    <!-- Itera sobre los nodos (para soportar ForkJoin) -->
+    <div *ngFor="let nodo of nodosActivos" class="task-card">
+      <div class="task-header">
+        <span class="category-badge">{{ nodo.category }}</span>
+        <h3>{{ nodo.text || 'Sin Título' }}</h3>
+      </div>
+
+      <!-- Tareas tipo ACTIVITY -->
+      <div *ngIf="nodo.category === 'Activity' || nodo.category === undefined" class="task-body">
+        <p>Por favor completa los siguientes campos:</p>
+        
+        <div *ngFor="let task of nodo.tasks" class="dynamic-field">
+          <label>{{ task.nombre }} ({{task.tipo}})</label>
+          
+          <!-- Renderizado dinámico según el tipo -->
+          <ng-container [ngSwitch]="task.tipo">
+            
+            <input *ngSwitchCase="'TEXTO'" type="text" [(ngModel)]="respuestas[getInputName(nodo.key, task.nombre)]" class="form-control">
+            
+            <input *ngSwitchCase="'NUMERO'" type="number" [(ngModel)]="respuestas[getInputName(nodo.key, task.nombre)]" class="form-control">
+            
+            <input *ngSwitchCase="'FECHA'" type="date" [(ngModel)]="respuestas[getInputName(nodo.key, task.nombre)]" class="form-control">
+            
+            <input *ngSwitchCase="'CHECKBOX'" type="checkbox" [(ngModel)]="respuestas[getInputName(nodo.key, task.nombre)]">
+
+            <ng-container *ngSwitchCase="'IMAGEN'">
+              <input type="file" accept="image/*" class="form-control" 
+                     (change)="onFileSelected($event, nodo.key, task.nombre)"
+                     [disabled]="uploadingFields.has(getInputName(nodo.key, task.nombre))">
+              <div *ngIf="uploadingFields.has(getInputName(nodo.key, task.nombre))" class="text-info mt-1">
+                <small><i class="bi bi-hourglass-split"></i> Subiendo imagen...</small>
+              </div>
+              <div *ngIf="respuestas[getInputName(nodo.key, task.nombre)]" class="mt-2">
+                <img [src]="respuestas[getInputName(nodo.key, task.nombre)]" alt="Preview" class="img-thumbnail" style="max-height: 150px;">
+              </div>
+            </ng-container>
+
+            <ng-container *ngSwitchCase="'DOCUMENTO'">
+              <input type="file" accept=".pdf,.doc,.docx" class="form-control"
+                     (change)="onFileSelected($event, nodo.key, task.nombre)"
+                     [disabled]="uploadingFields.has(getInputName(nodo.key, task.nombre))">
+              <div *ngIf="uploadingFields.has(getInputName(nodo.key, task.nombre))" class="text-info mt-1">
+                <small><i class="bi bi-hourglass-split"></i> Subiendo documento...</small>
+              </div>
+              <div *ngIf="respuestas[getInputName(nodo.key, task.nombre)]" class="mt-2">
+                <a [href]="respuestas[getInputName(nodo.key, task.nombre)]" target="_blank" class="btn btn-sm btn-outline-info">
+                  <i class="bi bi-file-earmark-arrow-down"></i> Ver Documento
+                </a>
+              </div>
+            </ng-container>
+            
+            <!-- Default (por si acaso) -->
+            <input *ngSwitchDefault type="text" [(ngModel)]="respuestas[getInputName(nodo.key, task.nombre)]" class="form-control">
+          </ng-container>
+        </div>
+
+        <button class="btn btn-primary btn-block" (click)="avanzarNodo(nodo.key)">
+          Completar y Avanzar
+        </button>
+      </div>
+
+      <!-- Tareas tipo CONDITIONAL -->
+      <div *ngIf="nodo.category === 'Conditional'" class="task-body condicional">
+        <p><strong>Decisión requerida:</strong> ¿{{ nodo.text }}?</p>
+        <div class="decision-buttons">
+          <button *ngFor="let opcion of getOpcionesCondicional(nodo.key)" 
+                  class="btn btn-outline-success" 
+                  (click)="avanzarNodo(nodo.key, opcion)">
+            {{ opcion | uppercase }}
+          </button>
+        </div>
+      </div>
+      
+      <!-- Nodos de Finalización automática -->
+      <div *ngIf="nodo.category === 'Final'" class="task-body">
+        <p>Llegaste al final del proceso.</p>
+        <button class="btn btn-success btn-block" (click)="avanzarNodo(nodo.key)">
+          Terminar Trámite
+        </button>
+      </div>
+
+    </div>
+  </div>
+</div>

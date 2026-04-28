@@ -1,0 +1,105 @@
+<app-navbar></app-navbar>
+
+<div class="editor-wrapper">
+
+  <!-- HEADER BAR -->
+  <div class="editor-header">
+    <div class="editor-title">
+      <i class="bi bi-diagram-3"></i>
+      <span>Diseño: <strong>{{ politicaId }}</strong></span>
+    </div>
+    <div class="editor-actions">
+      <span class="badge-connected">
+        <span class="dot"></span> Conectado
+      </span>
+      <button class="btn-publish" (click)="publicar()">
+        <i class="bi bi-cloud-upload"></i> Publicar
+      </button>
+    </div>
+  </div>
+
+  <!-- MAIN AREA -->
+  <div class="editor-main">
+
+    <!-- TOOLKIT SIDEBAR -->
+    <aside class="toolkit-sidebar">
+      <div class="toolkit-header">
+        <i class="bi bi-tools"></i>&nbsp;TOOLKIT
+      </div>
+
+      <!-- Paleta GoJS ocupa todo el espacio -->
+      <div class="toolkit-palette-wrapper">
+        <gojs-palette [initPalette]="initPalette" [nodeDataArray]="paletteNodeData" [linkDataArray]="paletteLinkData"
+          [divClassName]="'myPaletteDiv'">
+        </gojs-palette>
+      </div>
+    </aside>
+
+    <!-- DIAGRAM CANVAS -->
+    <main class="diagram-area">
+      <gojs-diagram [initDiagram]="initDiagram" [nodeDataArray]="diagramNodeData" [linkDataArray]="diagramLinkData"
+        [divClassName]="diagramDivClassName" (modelChange)="diagramModelChange($event)">
+      </gojs-diagram>
+    </main>
+    <aside class="ai-sidebar">
+      <div class="ai-header">
+        <div class="ai-scanner"></div>
+        <i class="bi bi-cpu"></i>
+        <span>GEMMA_3_AGENT [12B]</span>
+      </div>
+      <div class="ai-messages" #chatContainer>
+        <div class="msg bot">
+          <div class="msg-tag">SYSTEM</div>
+          <div class="msg-content">
+            Hola. Soy tu agente de arquitectura.
+            Puedo conectar nodos, añadir actividades o crear políticas.
+            ¿Qué protocolo ejecutamos hoy?
+          </div>
+        </div>
+        <div *ngFor="let msg of chatHistory" [ngClass]="['msg', msg.role]">
+          <div class="msg-tag">{{ msg.role === 'user' ? 'USER_PROMPT' : 'GEMMA_OUT' }}</div>
+          <div class="msg-content">{{ msg.text }}</div>
+        </div>
+      </div>
+      <div class="ai-input-area">
+        <div class="input-wrapper">
+          <textarea [(ngModel)]="currentPrompt" (keyup.enter)="enviarPromptAI()" placeholder="Escribe un comando...">
+          </textarea>
+          <button (click)="enviarPromptAI()" [disabled]="isLoading">
+            <i class="bi bi-terminal" *ngIf="!isLoading"></i>
+            <div class="spinner-border spinner-border-sm" *ngIf="isLoading"></div>
+          </button>
+        </div>
+        <div class="tech-footer">SECURE_CONNECTION_LOCAL</div>
+      </div>
+    </aside>
+  </div>
+
+  <!-- MODAL SELECCIONAR DEPARTAMENTO -->
+  <div class="modal-overlay" *ngIf="showLaneModal">
+    <div class="modal-content">
+      <h3>Agregar Calle (Departamento)</h3>
+
+      <div class="form-group">
+        <label>Selecciona un departamento existente:</label>
+        <select [(ngModel)]="selectedDeptId" class="form-control">
+          <option value="">-- Crear Nuevo --</option>
+          <option *ngFor="let dept of departamentos" [value]="dept.id">
+            {{ dept.nombre }}
+          </option>
+        </select>
+      </div>
+
+      <div class="form-group" *ngIf="!selectedDeptId">
+        <label>Nombre del nuevo departamento:</label>
+        <input type="text" [(ngModel)]="newDeptName" class="form-control" placeholder="Ej: Recursos Humanos">
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn-cancel" (click)="cancelarLane()">Cancelar</button>
+        <button class="btn-confirm" (click)="confirmarLane()"
+          [disabled]="!selectedDeptId && !newDeptName.trim()">Aceptar</button>
+      </div>
+    </div>
+  </div>
+</div>

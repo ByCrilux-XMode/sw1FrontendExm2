@@ -1,0 +1,68 @@
+<app-navbar></app-navbar>
+
+<div class="container mt-4">
+    <div class="card shadow-sm border-0">
+        <div class="card-header bg-white py-3">
+            <h5 class="mb-0 text-secondary fw-bold">Administradores para Colaboración</h5>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th class="ps-4">Usuario</th>
+                        <th>Email</th>
+                        <th class="text-center">Acción</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr *ngFor="let admin of administradores">
+                        <td class="ps-4 fw-bold">{{ admin.username }}</td>
+                        <td>{{ admin.email }}</td>
+                        <td class="text-center">
+                            <button class="btn btn-info text-white btn-sm px-3" (click)="abrirModalInvitacion(admin)">
+                                <i class="bi bi-send-fill me-1"></i> Invitar a Diseñar
+                            </button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalInvitar" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title">Configurar Invitación</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p *ngIf="usuarioParaInvitar">Invitando a: <strong>{{ usuarioParaInvitar.username }}</strong></p>
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold small">1. Seleccionar Política:</label>
+                    <select [(ngModel)]="politicaSeleccionadaId" class="form-select">
+                        <option value="">-- Seleccione una política --</option>
+                        <option *ngFor="let p of politicas" [value]="p.id">{{ p.nombre || p.titulo }}</option>
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold small">2. Asignar Rol:</label>
+                    <select [(ngModel)]="rolSeleccionado" class="form-select">
+                        <option value="LECTOR">LECTOR (Solo ver)</option>
+                        <option value="EDITOR">EDITOR (Puede modificar)</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer bg-light">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-info text-white" [disabled]="!politicaSeleccionadaId"
+                    (click)="confirmarInvitacion()" data-bs-dismiss="modal">
+                    Enviar Invitación
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

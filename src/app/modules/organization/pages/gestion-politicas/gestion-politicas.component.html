@@ -1,0 +1,108 @@
+<app-navbar></app-navbar>
+
+<div class="container mt-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="fw-bold text-secondary mb-1">
+                <i class="bi bi-journal-text text-success me-2"></i> Gestión de Políticas
+            </h2>
+            <p class="text-muted">Administra y diseña las políticas de la organización.</p>
+        </div>
+        <button class="btn btn-success px-4 shadow-sm" (click)="abrirModalNuevaPolitica()">
+            <i class="bi bi-plus-circle me-2"></i> Nueva Política
+        </button>
+    </div>
+
+    <!-- Spinner -->
+    <div *ngIf="cargando" class="text-center py-5">
+        <div class="spinner-border text-success" role="status">
+            <span class="visually-hidden">Cargando...</span>
+        </div>
+    </div>
+
+    <!-- Empty State -->
+    <div *ngIf="!cargando && politicas.length === 0" class="text-center py-5 bg-light rounded shadow-sm border border-dashed">
+        <i class="bi bi-folder-x display-1 text-muted mb-3"></i>
+        <h4 class="text-secondary">No hay políticas creadas</h4>
+        <p class="text-muted">Comienza creando tu primera política organizativa.</p>
+        <button class="btn btn-outline-success mt-2" (click)="abrirModalNuevaPolitica()">
+            <i class="bi bi-plus-lg"></i> Crear ahora
+        </button>
+    </div>
+
+    <!-- Lista de políticas -->
+    <div *ngIf="!cargando && politicas.length > 0" class="row g-4">
+        <div class="col-md-6 col-lg-4" *ngFor="let p of politicas">
+            <div class="card h-100 border-0 shadow-sm border-top border-success border-4 policy-card transition-all cursor-pointer hover-lift" [routerLink]="['/admin/editor', p.id]">
+                <div class="card-body d-flex flex-column">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <h5 class="card-title fw-bold mb-0 text-dark">{{ p.nombre }}</h5>
+                        <span class="badge" [ngClass]="p.publicado ? 'bg-success' : 'bg-warning text-dark'">
+                            {{ p.publicado ? 'Publicada' : 'Borrador' }}
+                        </span>
+                    </div>
+                    <p class="card-text text-muted small flex-grow-1">
+                        {{ p.objetivo || 'Sin objetivo definido.' }}
+                    </p>
+                    <div class="d-flex justify-content-between align-items-center mt-3 pt-3 border-top">
+                        <small class="text-secondary"><i class="bi bi-tag-fill me-1"></i> v{{ p.version }}</small>
+                        <small class="text-secondary"><i class="bi bi-person-fill me-1"></i> {{ p.creadoPor }}</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Nueva Política -->
+<div class="modal fade" id="modalNuevaPolitica" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title"><i class="bi bi-file-earmark-plus me-2"></i> Crear Nueva Política</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form (ngSubmit)="guardarPolitica()" #politicaForm="ngForm">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Nombre de la Política <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" [(ngModel)]="nuevaPolitica.nombre" name="nombre" required
+                            placeholder="Ej: Política de Contratación" autocomplete="off">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Objetivo / Descripción</label>
+                        <textarea class="form-control" [(ngModel)]="nuevaPolitica.objetivo" name="objetivo" rows="3"
+                            placeholder="Describe brevemente el propósito de esta política..."></textarea>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">Versión</label>
+                            <input type="text" class="form-control" [(ngModel)]="nuevaPolitica.version" name="version" placeholder="1.0">
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer bg-light">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <!-- Usamos data-bs-dismiss="modal" para que cierre al hacer click -->
+                <button type="button" class="btn btn-success px-4" (click)="guardarPolitica()" [disabled]="!nuevaPolitica.nombre" data-bs-dismiss="modal">
+                    <i class="bi bi-check-lg me-1"></i> Crear y Diseñar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.policy-card {
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.policy-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important;
+}
+.border-dashed {
+    border-style: dashed !important;
+}
+</style>

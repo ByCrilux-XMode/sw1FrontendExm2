@@ -1,0 +1,179 @@
+<app-navbar></app-navbar>
+
+<div class="container mt-4">
+  <div class="d-flex justify-content-between align-items-center">
+    <h2 class="fw-bold text-dark">
+      <i class="bi bi-people-fill text-primary"></i> Gestión de Usuarios
+    </h2>
+    <button class="btn btn-primary" routerLink="/admin/usuarios/nuevo">
+      <i class="bi bi-person-plus"></i> Nuevo Usuario
+    </button>
+  </div>
+  <hr>
+
+  <div class="mt-4">
+    <h4 class="text-primary fw-bold mb-3">Lista de Clientes</h4>
+    <div class="card shadow-sm border-0">
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="table-light">
+            <tr>
+              <th>Usuario</th>
+              <th>Email</th>
+              <th>ID Persona (Backend)</th>
+              <th>Estado</th>
+              <th class="text-center">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let cliente of clientes">
+              <td>
+                <div class="fw-bold">{{ cliente.username }}</div>
+              </td>
+              <td>{{ cliente.email }}</td>
+              <td><code class="small text-secondary">{{ cliente.personaId }}</code></td>
+              <td>
+                <span class="badge rounded-pill" [ngClass]="cliente.activo ? 'bg-success' : 'bg-danger'">
+                  {{ cliente.activo ? 'Activo' : 'Inactivo' }}
+                </span>
+              </td>
+              <td class="text-center">
+                <button class="btn btn-sm btn-outline-warning me-2" (click)="cambiarEstado(cliente)"
+                  title="Cambiar Estado">
+                  <i class="bi bi-arrow-repeat"></i>
+                </button>
+                <button class="btn btn-sm btn-outline-danger" (click)="eliminar(cliente.personaId)"
+                  title="Eliminar Persona">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </td>
+            </tr>
+            <tr *ngIf="clientes.length === 0">
+              <td colspan="5" class="text-center text-muted py-4">No hay clientes registrados.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="mt-5 mb-5">
+    <h4 class="text-success fw-bold mb-3">Lista de Funcionarios</h4>
+    <div class="card shadow-sm border-0">
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="table-light">
+            <tr>
+              <th>Usuario</th>
+              <th>Departamento</th>
+              <th>ID Persona</th>
+              <th>Estado</th>
+              <th class="text-center">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let func of funcionarios">
+              <td class="fw-bold">{{ func.username }}</td>
+              <td>
+                <span [class]="func.asignacionId ? 'badge bg-info text-dark' : 'badge bg-light text-muted border'">
+                  <i class="bi bi-building"></i> {{ func.deptoNombre || 'Sin asignar' }}
+                </span>
+              </td>
+              <td><code class="small text-secondary">{{ func.personaId }}</code></td>
+              <td>
+                <span class="badge rounded-pill" [ngClass]="func.activo ? 'bg-success' : 'bg-danger'">
+                  {{ func.activo ? 'Activo' : 'Inactivo' }}
+                </span>
+              </td>
+              <td class="text-center">
+                <button class="btn btn-sm btn-outline-warning me-1" (click)="cambiarEstado(func)">
+                  <i class="bi bi-arrow-repeat"></i>
+                </button>
+
+                <button class="btn btn-sm btn-outline-secondary me-1" title="Asignar Departamento"
+                  data-bs-toggle="modal" data-bs-target="#modalAsignar" (click)="abrirModalAsignar(func)">
+                  <i class="bi bi-building"></i>
+                </button>
+
+                <button *ngIf="func.asignacionId" class="btn btn-sm btn-outline-danger me-1"
+                  (click)="quitarDeDepartamento(func.asignacionId)" title="Quitar de Departamento">
+                  <i class="bi bi-building-dash text-danger"></i>
+                </button>
+
+                <button class="btn btn-sm btn-outline-danger" (click)="eliminar(func.personaId)">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </td>
+            </tr>
+            <tr *ngIf="funcionarios.length === 0">
+              <td colspan="5" class="text-center text-muted py-4">No hay funcionarios registrados.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="mt-4">
+    <h4 class="text-danger fw-bold mb-3">Lista de Administradores</h4>
+    <div class="card shadow-sm border-0 border-top border-danger border-4">
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="table-dark">
+            <tr>
+              <th>Usuario</th>
+              <th>Email</th>
+              <th>Estado</th>
+              <th class="text-center">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let admin of administradores">
+              <td class="fw-bold">{{ admin.username }}</td>
+              <td>{{ admin.email }}</td>
+              <td>
+                <span class="badge rounded-pill" [ngClass]="admin.activo ? 'bg-success' : 'bg-danger'">
+                  {{ admin.activo ? 'Activo' : 'Inactivo' }}
+                </span>
+              </td>
+              <td class="text-center">
+                <button class="btn btn-sm btn-outline-warning" (click)="cambiarEstado(admin)">
+                  <i class="bi bi-arrow-repeat"></i>
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="modal fade" id="modalAsignar" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title">Designar Unidad Organizativa</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p *ngIf="usuarioSeleccionado">
+          Funcionario: <strong>{{ usuarioSeleccionado.username }}</strong>
+        </p>
+        <label class="form-label small fw-bold">Seleccionar Departamento:</label>
+        <select [(ngModel)]="deptoSeleccionadoId" class="form-select">
+          <option value="">-- Seleccionar --</option>
+          <option *ngFor="let d of departamentos" [value]="d.id">{{ d.nombre }}</option>
+        </select>
+      </div>
+      <div class="modal-footer bg-light">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-primary" [disabled]="!deptoSeleccionadoId" (click)="guardarAsignacion()"
+          data-bs-dismiss="modal">
+          Confirmar Asignación
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

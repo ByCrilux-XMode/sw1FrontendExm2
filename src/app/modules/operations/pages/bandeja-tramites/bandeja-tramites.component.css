@@ -1,0 +1,19 @@
+.header-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.modal.show {
+  display: block;
+}
+
+.modal-content {
+  background-color: #1a1e24 !important;
+}
+
+.badge {
+  font-size: 0.9rem;
+  padding: 5px 10px;
+}

@@ -1,0 +1,79 @@
+<app-navbar></app-navbar>
+
+<div class="container mt-4" *ngIf="!loading && tramite">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="fw-bold">Detalle del Trámite</h2>
+    <button class="btn btn-outline-secondary" routerLink="/funcionario/bandeja">
+      <i class="bi bi-arrow-left"></i> Volver
+    </button>
+  </div>
+
+  <div class="row">
+    <div class="col-md-4">
+      <div class="card shadow-sm border-0 mb-4">
+        <div class="card-header bg-primary text-white">
+          <h5 class="mb-0">Estado General</h5>
+        </div>
+        <div class="card-body">
+          <p><strong>Estado:</strong>
+            <span class="badge bg-info text-dark">{{ tramite.estadoActual }}</span>
+          </p>
+          <p><strong>Inicio:</strong> {{ tramite.fechaInicio | date:'short' }}</p>
+          <p *ngIf="tramite.fechaFin"><strong>Fin:</strong> {{ tramite.fechaFin | date:'short' }}</p>
+          <hr>
+          <p class="text-muted small">ID Trámite: {{ tramite.id }}</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-8">
+      <div class="card shadow-sm border-0">
+        <div class="card-header bg-white fw-bold">
+          <i class="bi bi-list-check text-primary"></i> Tareas y Archivos Guardados
+        </div>
+        <div class="card-body p-0">
+          <table class="table table-hover mb-0">
+            <thead class="table-light">
+              <tr>
+                <th class="ps-3">Tarea</th>
+                <th>Resultado / Archivo</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let res of tramite.respuestas | keyvalue">
+                <td class="ps-3 fw-bold">{{ formatearNombreTarea(res.key) }}</td>
+                <td>
+                  <div *ngIf="isUrl(res.value)" class="btn-group">
+                    <a [href]="res.value" target="_blank" class="btn btn-sm btn-outline-primary">
+                      <i class="bi bi-eye"></i> Ver
+                    </a>
+                    <button class="btn btn-sm btn-success text-white" (click)="descargarDocumento(res.value, res.key)">
+                      <i class="bi bi-download"></i> Descargar
+                    </button>
+                  </div>
+
+                  <div *ngIf="!isUrl(res.value)">
+                    <span [class.badge]="res.value === true" [class.bg-success]="res.value === true"
+                      [class.text-muted]="res.value !== true">
+                      {{ res.value === true ? 'Completado' : res.value }}
+                    </span>
+                  </div>
+                </td>
+              </tr>
+              <tr *ngIf="(tramite.respuestas | keyvalue)?.length === 0">
+                <td colspan="2" class="text-center py-4 text-muted">
+                  No se han registrado tareas para este trámite aún.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="text-center mt-5" *ngIf="loading">
+  <div class="spinner-border text-primary" role="status"></div>
+  <p class="mt-2">Cargando información del servidor...</p>
+</div>

@@ -1,0 +1,38 @@
+<app-navbar></app-navbar>
+<div class="container mt-4">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="fw-bold"><i class="bi bi-building text-primary"></i> Departamentos</h2>
+    <button class="btn btn-primary" routerLink="/admin/departamentos/nuevo">
+      <i class="bi bi-plus-lg"></i> Nuevo Departamento
+    </button>
+  </div>
+
+  <div class="row g-3">
+    <div class="col-md-4" *ngFor="let dept of departamentos">
+      <div class="card h-100 shadow-sm border-0 border-top border-primary border-4">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-start mb-2">
+            <h5 class="card-title fw-bold mb-0">{{dept.nombre}}</h5>
+            <span class="badge" [ngClass]="dept.activo ? 'bg-success' : 'bg-danger'">
+              {{dept.activo ? 'Activo' : 'Inactivo'}}
+            </span>
+          </div>
+          <p class="card-text text-muted small">{{dept.descripcion}}</p>
+        </div>
+        <div class="card-footer bg-transparent border-0 d-flex justify-content-end gap-2 pb-3">
+          <button class="btn btn-sm btn-outline-warning" [routerLink]="['/admin/departamentos/editar', dept.id]">
+            <i class="bi bi-pencil"></i>
+          </button>
+          <button class="btn btn-sm btn-outline-danger" (click)="eliminar(dept.id)">
+            <i class="bi bi-trash"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12 text-center text-muted py-5" *ngIf="departamentos.length === 0">
+       <i class="bi bi-inbox" style="font-size: 3rem;"></i>
+       <p>No hay departamentos registrados.</p>
+    </div>
+  </div>
+</div>

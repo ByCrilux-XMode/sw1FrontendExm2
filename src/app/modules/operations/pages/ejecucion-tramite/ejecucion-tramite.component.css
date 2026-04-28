@@ -1,0 +1,132 @@
+.ejecucion-container {
+  display: flex;
+  height: 100vh;
+  background-color: #0d1117;
+  /* Dark background */
+  color: #e0e0e0;
+}
+
+.diagram-section {
+  flex: 2;
+  padding: 20px;
+  border-right: 1px solid #30363d;
+  display: flex;
+  flex-direction: column;
+}
+
+.myDiagramDiv {
+  flex: 1;
+  min-height: 600px;
+  border: 1px solid #30363d;
+  border-radius: 8px;
+  background-color: #161b22;
+}
+
+.tasks-section {
+  flex: 1;
+  padding: 20px;
+  overflow-y: auto;
+  background-color: #1a1e24;
+}
+
+.task-card {
+  background-color: #21262d;
+  border: 1px solid #30363d;
+  border-radius: 8px;
+  padding: 15px;
+  margin-bottom: 20px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+}
+
+.task-header {
+  border-bottom: 1px solid #30363d;
+  padding-bottom: 10px;
+  margin-bottom: 15px;
+}
+
+.category-badge {
+  background-color: #4fc3f7;
+  color: #000;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: bold;
+}
+
+.task-header h3 {
+  margin: 10px 0 0 0;
+  font-size: 1.2rem;
+  color: #fff;
+}
+
+.dynamic-field {
+  margin-bottom: 15px;
+}
+
+.dynamic-field label {
+  display: block;
+  margin-bottom: 5px;
+  color: #8b949e;
+  font-size: 0.9rem;
+  text-transform: capitalize;
+}
+
+.form-control {
+  width: 100%;
+  padding: 8px 12px;
+  background-color: #0d1117;
+  border: 1px solid #30363d;
+  color: #c9d1d9;
+  border-radius: 4px;
+}
+
+.form-control:focus {
+  border-color: #4fc3f7;
+  outline: none;
+}
+
+.btn {
+  padding: 10px 15px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+  border: none;
+}
+
+.btn-primary {
+  background-color: #238636;
+  color: #fff;
+}
+
+.btn-primary:hover {
+  background-color: #2ea043;
+}
+
+.btn-block {
+  width: 100%;
+  margin-top: 15px;
+}
+
+.decision-buttons {
+  display: flex;
+  gap: 10px;
+  margin-top: 15px;
+}
+
+.btn-outline-success {
+  background-color: transparent;
+  border: 1px solid #238636;
+  color: #2ea043;
+  flex: 1;
+}
+
+.btn-outline-success:hover {
+  background-color: #238636;
+  color: #fff;
+}
+
+.finalizado-text {
+  color: #2ea043;
+  font-weight: bold;
+  font-size: 1.1rem;
+}

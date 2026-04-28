@@ -1,0 +1,67 @@
+<div class="container mt-4">
+  <div class="header-actions">
+    <h2>Bandeja de Trámites</h2>
+    <button class="btn btn-primary" (click)="showModal = true">
+      + Iniciar Nuevo Trámite (Prueba)
+    </button>
+  </div>
+
+  <table class="table table-dark table-hover mt-3">
+    <thead>
+      <tr>
+        <th>ID Trámite</th>
+        <th>Política ID</th>
+        <th>Estado</th>
+        <th>Fecha Inicio</th>
+        <th>Acciones</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngIf="tramites.length === 0">
+        <td colspan="5" class="text-center">No hay trámites activos. Crea uno nuevo.</td>
+      </tr>
+      <tr *ngFor="let t of tramites">
+        <td>{{ t.id }}</td>
+        <td>{{ t.politicaId }}</td>
+        <td>
+          <span class="badge" [ngClass]="{'bg-success': t.estadoActual === 'FINALIZADO', 'bg-warning text-dark': t.estadoActual === 'EN_PROCESO', 'bg-primary': t.estadoActual === 'INICIADO'}">
+            {{ t.estadoActual }}
+          </span>
+        </td>
+        <td>{{ t.fechaInicio | date:'short' }}</td>
+        <td>
+          <button class="btn btn-sm btn-info" (click)="abrirEjecucion(t.id)">
+            Ejecutar Flujo
+          </button>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- Modal para Iniciar -->
+  <div class="modal" [class.show]="showModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content bg-dark text-light">
+        <div class="modal-header border-secondary">
+          <h5 class="modal-title">Iniciar Trámite</h5>
+          <button type="button" class="btn-close btn-close-white" (click)="showModal = false"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label">Seleccione Política Base</label>
+            <select class="form-select bg-dark text-light border-secondary" [(ngModel)]="selectedPoliticaId">
+              <option value="" disabled selected>-- Elige una política --</option>
+              <option *ngFor="let p of politicas" [value]="p.id">{{ p.nombre }} v{{ p.version }}</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer border-secondary">
+          <button type="button" class="btn btn-secondary" (click)="showModal = false">Cancelar</button>
+          <button type="button" class="btn btn-primary" (click)="iniciarTramite()">Iniciar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- Backdrop -->
+  <div class="modal-backdrop fade show" *ngIf="showModal"></div>
+</div>

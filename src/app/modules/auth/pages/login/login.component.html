@@ -1,0 +1,37 @@
+<div class="container d-flex justify-content-center align-items-center vh-100">
+
+  <div class="card shadow-lg p-4" style="width: 400px; border-radius: 15px;">
+    
+    <div class="text-center mb-4">
+      <i class="bi bi-person-circle text-primary" style="font-size: 3rem;"></i>
+      <h2 class="fw-bold">Iniciar Sesión</h2>
+      <p class="text-muted">Gestión de Políticas - UAGRM</p>
+    </div>
+
+    <form (submit)="onLogin($event)">
+        
+      <div class="mb-3">
+        <label class="form-label">Usuario</label>
+        <div class="input-group">
+          <span class="input-group-text"><i class="bi bi-person"></i></span>
+          <input type="text" class="form-control" name="username" [(ngModel)]="credentials.username" required>
+        </div>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label">Contraseña</label>
+        <div class="input-group">
+          <span class="input-group-text"><i class="bi bi-lock"></i></span>
+          <input type="password" class="form-control" name="password" [(ngModel)]="credentials.password" required>
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn-primary w-100 py-2 shadow-sm">
+        Entrar al Sistema
+      </button>
+      
+    </form>
+
+  </div>
+
+</div>

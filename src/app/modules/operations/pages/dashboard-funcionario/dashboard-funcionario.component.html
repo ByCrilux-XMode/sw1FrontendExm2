@@ -1,0 +1,171 @@
+<app-navbar></app-navbar>
+
+<div class="container mt-4">
+  <h2 class="mb-4">Dashboard de Operaciones</h2>
+
+  <!-- Navegación de Pestañas -->
+  <ul class="nav nav-tabs mb-4">
+    <li class="nav-item">
+      <a class="nav-link" [class.active]="activeTab === 'bandeja_tareas'" (click)="switchTab('bandeja_tareas')">
+        Bandeja de Tareas
+      </a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" [class.active]="activeTab === 'iniciar_tramite'" (click)="switchTab('iniciar_tramite')">
+        Iniciar Trámite
+      </a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" [class.active]="activeTab === 'registrar_cliente'" (click)="switchTab('registrar_cliente')">
+        Registrar Cliente
+      </a>
+    </li>
+  </ul>
+
+  <!-- CONTENIDO DE PESTAÑAS -->
+  <div class="tab-content">
+    
+    <!-- Pestaña 1: Bandeja de Tareas -->
+    <div *ngIf="activeTab === 'bandeja_tareas'">
+      <div class="row">
+        <!-- PENDIENTES -->
+        <div class="col-md-4">
+          <div class="card bg-dark border-warning">
+            <div class="card-header bg-warning text-dark font-weight-bold">
+              PENDIENTES ({{ tareasPendientes.length }})
+            </div>
+            <div class="card-body">
+              <div *ngIf="tareasPendientes.length === 0" class="text-muted">No hay tareas pendientes.</div>
+              <div *ngFor="let t of tareasPendientes" class="task-item border-warning">
+                <h5>{{ t.nombreTarea }}</h5>
+                <p class="small text-muted">Trámite ID: {{ t.tramiteId }}</p>
+                <div class="mt-2">
+                  <button class="btn btn-sm btn-warning me-2" (click)="realizarTarea(t.id, t.tramiteId, t.tareaId)">Realizar</button>
+                  <button class="btn btn-sm btn-outline-light" (click)="verDetalle(t.tramiteId)">Ver Detalle</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- EN CURSO -->
+        <div class="col-md-4">
+          <div class="card bg-dark border-success">
+            <div class="card-header bg-success text-white font-weight-bold">
+              EN CURSO ({{ tareasEnCurso.length }})
+            </div>
+            <div class="card-body">
+              <div *ngIf="tareasEnCurso.length === 0" class="text-muted">No hay tareas en curso.</div>
+              <div *ngFor="let t of tareasEnCurso" class="task-item border-success">
+                <h5>{{ t.nombreTarea }}</h5>
+                <p class="small text-muted">Trámite ID: {{ t.tramiteId }}</p>
+                <div class="mt-2">
+                  <button class="btn btn-sm btn-success me-2" (click)="realizarTarea(t.id, t.tramiteId, t.tareaId)">Continuar</button>
+                  <button class="btn btn-sm btn-outline-light" (click)="verDetalle(t.tramiteId)">Ver Detalle</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- COMPLETADAS -->
+        <div class="col-md-4">
+          <div class="card bg-dark border-secondary">
+            <div class="card-header bg-secondary text-white font-weight-bold">
+              COMPLETADAS ({{ tareasCompletadas.length }})
+            </div>
+            <div class="card-body">
+              <div *ngIf="tareasCompletadas.length === 0" class="text-muted">No hay tareas completadas.</div>
+              <div *ngFor="let t of tareasCompletadas" class="task-item border-secondary opacity-50">
+                <h5>{{ t.nombreTarea }}</h5>
+                <p class="small text-muted">Finalizada: {{ t.fechaFin | date:'short' }}</p>
+                <button class="btn btn-sm btn-outline-light mt-2" (click)="verDetalle(t.tramiteId)">Ver Detalle</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pestaña 2: Iniciar Trámite -->
+    <div *ngIf="activeTab === 'iniciar_tramite'">
+      <div class="card bg-dark border-secondary">
+        <div class="card-body text-light">
+          <h4 class="card-title mb-4">Iniciar un Trámite para un Cliente</h4>
+          
+          <div class="mb-3">
+            <label>Seleccionar Cliente</label>
+            <select class="form-select bg-dark text-light border-secondary" [(ngModel)]="selectedClienteId">
+              <option value="" disabled selected>-- Elige un cliente registrado --</option>
+              <option *ngFor="let c of clientes" [value]="c.id">{{ c.username }} (Cliente)</option>
+            </select>
+          </div>
+
+          <div class="mb-3">
+            <label>Seleccionar Política (Trámite a Iniciar)</label>
+            <select class="form-select bg-dark text-light border-secondary" [(ngModel)]="selectedPoliticaId">
+              <option value="" disabled selected>-- Elige una política publicada --</option>
+              <option *ngFor="let p of politicas" [value]="p.id">{{ p.nombre }} v{{ p.version }}</option>
+            </select>
+          </div>
+
+          <button class="btn btn-primary" (click)="iniciarTramite()">Iniciar Flujo</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pestaña 3: Registrar Cliente -->
+    <div *ngIf="activeTab === 'registrar_cliente'">
+      <div class="card bg-dark border-secondary">
+        <div class="card-body text-light p-4">
+          <h4 class="card-title mb-4"><i class="bi bi-person-plus-fill"></i> Registrar Nuevo Cliente</h4>
+          <p class="text-muted">Crea una cuenta exclusiva con rol de CLIENTE para iniciarle trámites.</p>
+
+          <form [formGroup]="clienteForm" (ngSubmit)="registrarCliente()">
+            <div class="row g-3">
+              <h5 class="text-secondary border-bottom pb-2">Datos de Cuenta</h5>
+              <div class="col-md-4">
+                <label class="form-label">Nombre de Usuario</label>
+                <input type="text" class="form-control bg-dark text-light border-secondary" formControlName="username">
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Email</label>
+                <input type="email" class="form-control bg-dark text-light border-secondary" formControlName="email">
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Contraseña</label>
+                <input type="password" class="form-control bg-dark text-light border-secondary" formControlName="password">
+              </div>
+
+              <h5 class="text-secondary border-bottom pb-2 mt-4">Información Personal</h5>
+              <div class="col-md-6">
+                <label class="form-label">Nombre</label>
+                <input type="text" class="form-control bg-dark text-light border-secondary" formControlName="nombre">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Apellido</label>
+                <input type="text" class="form-control bg-dark text-light border-secondary" formControlName="apellido">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Teléfono</label>
+                <input type="text" class="form-control bg-dark text-light border-secondary" formControlName="telefono">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">CI (Cédula de Identidad)</label>
+                <input type="text" class="form-control bg-dark text-light border-secondary" formControlName="ci">
+              </div>
+            </div>
+
+            <div class="mt-4">
+              <button type="submit" class="btn btn-success" [disabled]="clienteForm.invalid">
+                Crear Cliente
+              </button>
+            </div>
+          </form>
+
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
