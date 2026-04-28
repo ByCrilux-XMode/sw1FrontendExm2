@@ -1,30 +1,33 @@
-# Etapa 1: Construcción
+# -------- ETAPA 1: BUILD --------
 FROM node:20-alpine AS build
 WORKDIR /app
 
-# Instalación limpia
 COPY package*.json ./
 RUN npm install --legacy-peer-deps
 
-# Copiamos el resto del código
 COPY . .
 
-# Ejecutamos el build con más memoria y sin flags innecesarios
 RUN NODE_OPTIONS="--max-old-space-size=4096" npm run build
 
-# Etapa 2: Servidor
+
+# -------- ETAPA 2: NGINX --------
 FROM nginx:alpine
-WORKDIR /usr/share/nginx/html
-RUN rm -rf ./*
 
+# Limpiar carpeta default
+RUN rm -rf /usr/share/nginx/html/*
 
-# Copiamos los archivos de Angular (Asegúrate de la ruta /browser)
-COPY --from=build /app/dist/gestion-politicas-frontend/browser .
+# ⚠️ Ajusta si NO usas /browser
+COPY --from=build /app/dist/gestion-politicas-frontend/browser /usr/share/nginx/html
+
+# Config nginx (puerto dinámico luego)
 COPY nginx.conf /etc/nginx/conf.d/default.conf
-# Preparamos el script de entrada e inyección
+
+# Entrypoint
 COPY entrypoint.sh /entrypoint.sh
-# FIX para Windows: Convertir CRLF a LF y dar permisos
+
+# Fix CRLF (IMPORTANTE en Windows)
 RUN sed -i 's/\r$//' /entrypoint.sh && chmod +x /entrypoint.sh
 
 EXPOSE 8080
+
 ENTRYPOINT ["/bin/sh", "/entrypoint.sh"]
