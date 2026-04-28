@@ -14,12 +14,16 @@ RUN NODE_OPTIONS="--max-old-space-size=4096" npm run build
 
 # Etapa 2: Servidor
 FROM nginx:alpine
-# IMPORTANTE: Verifica que en tu PC la carpeta se llame exactamente así después de hacer un build local
-COPY --from=build /app/dist/gestion-politicas-frontend/browser /usr/share/nginx/html
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+WORKDIR /usr/share/nginx/html
+RUN rm -rf ./*
 
+# Copiamos los archivos de Angular (Asegúrate de la ruta /browser)
+COPY --from=build /app/dist/gestion-politicas-frontend/browser .
+
+# Preparamos el script de entrada e inyección
 COPY entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
+# FIX para Windows: Convertir CRLF a LF y dar permisos
+RUN sed -i 's/\r$//' /entrypoint.sh && chmod +x /entrypoint.sh
 
 EXPOSE 8080
 ENTRYPOINT ["/bin/sh", "/entrypoint.sh"]
