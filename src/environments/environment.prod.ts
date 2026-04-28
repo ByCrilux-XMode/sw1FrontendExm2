@@ -1,13 +1,13 @@
 export const environment = {
     production: true,
-    apiUrl: 'API_URL_PLACEHOLDER',
+    apiUrl: 'https://sw1frontexm1-614166022463.southamerica-east1.run.app',
     firebase: {
-        apiKey: 'FIREBASE_API_KEY_PLACEHOLDER',
-        authDomain: 'FIREBASE_AUTH_DOMAIN_PLACEHOLDER',
-        projectId: 'FIREBASE_PROJECT_ID_PLACEHOLDER',
-        storageBucket: 'FIREBASE_STORAGE_BUCKET_PLACEHOLDER',
-        messagingSenderId: 'FIREBASE_SENDER_ID_PLACEHOLDER',
-        appId: 'FIREBASE_APP_ID_PLACEHOLDER',
-        measurementId: 'FIREBASE_MEASUREMENT_ID_PLACEHOLDER'
+        apiKey: "AIzaSyDYHYJOj6tJlxAr7krcaVBzUI6lJBCTKHw",
+        authDomain: "diagramadorrealtime.firebaseapp.com",
+        projectId: "diagramadorrealtime",
+        storageBucket: "diagramadorrealtime.firebasestorage.app",
+        messagingSenderId: "61045271101",
+        appId: "1:61045271101:web:2d283d60600c56b391d854",
+        measurementId: "G-MMQP1LJE9B"
     }
 };
