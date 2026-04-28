@@ -17,6 +17,7 @@ FROM nginx:alpine
 WORKDIR /usr/share/nginx/html
 RUN rm -rf ./*
 
+
 # Copiamos los archivos de Angular (Asegúrate de la ruta /browser)
 COPY --from=build /app/dist/gestion-politicas-frontend/browser .
 
