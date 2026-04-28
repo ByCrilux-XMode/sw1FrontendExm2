@@ -1,17 +1,18 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, throwError } from 'rxjs';
+import { tap, catchError } from 'rxjs/operators';
+
 @Injectable({ providedIn: 'root' })
 export class AiService {
     private http = inject(HttpClient);
-    // URL por defecto de Ollama
-    private readonly OLLAMA_URL = 'https://jeffry-sorriest-benny.ngrok-free.dev/api/generate';
+    // URL por defecto de Ollama con bypass para ngrok
+    private readonly OLLAMA_URL = 'https://jeffry-sorriest-benny.ngrok-free.dev/api/generate?ngrok-skip-browser-warning=true';
 
     enviarConsulta(prompt: string, esquemaActual: any): Observable<any> {
 
         const headers = new HttpHeaders({
-            'Content-Type': 'application/json',
-            'ngrok-skip-browser-warning': 'true'
+            'Content-Type': 'application/json'
         });
 
         const systemInstruction = `
@@ -38,11 +39,19 @@ export class AiService {
 
         const fullPrompt = `Esquema actual: ${JSON.stringify(esquemaActual)}\n\nInstrucción: ${prompt}`;
 
+        console.log("Enviando consulta a la IA...", { prompt, model: 'gemma3:12b' });
+
         return this.http.post<any>(this.OLLAMA_URL, {
             model: 'gemma3:12b',
             prompt: fullPrompt,
             system: systemInstruction,
             stream: false
-        }, { headers: headers });
+        }, { headers: headers }).pipe(
+            tap(response => console.log("Respuesta recibida de IA:", response)),
+            catchError(error => {
+                console.error("Error al consultar la IA:", error);
+                return throwError(() => error);
+            })
+        );
     }
 }

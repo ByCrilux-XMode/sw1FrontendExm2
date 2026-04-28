@@ -1,6 +1,11 @@
 import { HttpInterceptorFn } from '@angular/common/http';
 
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
+  // 0. Si la petición es para la IA, no añadimos el token (evita problemas de CORS innecesarios)
+  if (req.url.includes('ngrok-free.dev') || req.url.includes('/api/generate')) {
+    return next(req);
+  }
+
   // 1. Obtenemos el token del localStorage
   const token = localStorage.getItem('token');
 

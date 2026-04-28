@@ -513,8 +513,16 @@ export class EditorPoliticas implements OnInit {
 
     this.aiService.enviarConsulta(userText, esquemaActual).subscribe({
       next: (response) => {
+        console.log("Respuesta cruda de Gemma:", response);
         const rawOutput = response.response;
-        console.log("Respuesta cruda de Gemma:", rawOutput);
+        
+        if (!rawOutput) {
+          console.warn("La IA devolvió una respuesta vacía.");
+          this.chatHistory.push({ role: 'bot', text: "Lo siento, no pude generar una respuesta. Intenta de nuevo." });
+          this.isLoading = false;
+          this.cdr.detectChanges();
+          return;
+        }
 
         // 1. Extraer texto (buscamos entre etiquetas o simplemente lo que esté antes del JSON)
         const textoMatch = rawOutput.match(/<texto>([\s\S]*?)<\/texto>/);
@@ -549,7 +557,11 @@ export class EditorPoliticas implements OnInit {
             this.aplicarYNotificar(nuevoEsquema);
           } catch (e) {
             console.error("Error al parsear el JSON de la IA:", e);
+            console.log("Contenido que falló:", jsonStr);
+            this.chatHistory.push({ role: 'bot', text: "Error: El formato de respuesta de la IA no es un JSON válido." });
           }
+        } else {
+          console.warn("No se encontró JSON en la respuesta de la IA.");
         }
 
         this.isLoading = false;
@@ -557,8 +569,8 @@ export class EditorPoliticas implements OnInit {
         this.cdr.detectChanges();
       },
       error: (err) => {
-        console.error(err);
-        this.chatHistory.push({ role: 'bot', text: "Error de conexión con el agente local." });
+        console.error("Error en enviarPromptAI:", err);
+        this.chatHistory.push({ role: 'bot', text: "Error de conexión con el agente local. Verifica que Ollama esté corriendo." });
         this.isLoading = false;
         this.cdr.detectChanges();
       }
