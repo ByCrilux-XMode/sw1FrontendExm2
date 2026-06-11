@@ -39,6 +39,14 @@ export class DashboardFuncionarioComponent implements OnInit, OnDestroy {
   tareasAsignadas: any[] = [];
   funcionarioId: string = '';
 
+  // --- Filtro inteligente de la bandeja ---
+  filtroBusqueda: string = '';
+  filtroEstado: 'TODOS' | 'PENDIENTE' | 'EN_CURSO' | 'COMPLETADA' = 'TODOS';
+  filtroOrden: 'reciente' | 'antiguo' | 'nombre' = 'reciente';
+  // Cuántas tareas mostrar por columna (evita listar miles)
+  limitePendientes: number = 10;
+  limiteCompletadas: number = 10;
+
   constructor(
     private http: HttpClient,
     private router: Router,
@@ -199,9 +207,74 @@ export class DashboardFuncionarioComponent implements OnInit, OnDestroy {
     );
   }
 
-  get tareasPendientes() { return this.tareasAsignadas.filter(t => t.estado === 'PENDIENTE'); }
-  get tareasEnCurso() { return this.tareasAsignadas.filter(t => t.estado === 'EN_CURSO'); }
-  get tareasCompletadas() { return this.tareasAsignadas.filter(t => t.estado === 'COMPLETADA'); }
+  // Aplica búsqueda de texto + ordenamiento a un conjunto de tareas
+  private aplicarFiltros(tareas: any[]): any[] {
+    let resultado = tareas;
+
+    // Búsqueda por nombre de tarea o ID de trámite
+    const termino = this.filtroBusqueda.trim().toLowerCase();
+    if (termino) {
+      resultado = resultado.filter(t =>
+        (t.nombreTarea || '').toLowerCase().includes(termino) ||
+        (t.tramiteId || '').toString().toLowerCase().includes(termino)
+      );
+    }
+
+    // Ordenamiento (sin mutar el array original)
+    const getFecha = (t: any) =>
+      new Date(t.fechaFin || t.fechaAsignacion || t.fechaInicio || t.fechaCreacion || 0).getTime();
+
+    resultado = [...resultado].sort((a, b) => {
+      switch (this.filtroOrden) {
+        case 'antiguo':  return getFecha(a) - getFecha(b);
+        case 'nombre':   return (a.nombreTarea || '').localeCompare(b.nombreTarea || '');
+        case 'reciente':
+        default:         return getFecha(b) - getFecha(a);
+      }
+    });
+
+    return resultado;
+  }
+
+  // Indica si una columna debe mostrarse según el filtro de estado
+  mostrarColumna(estado: 'PENDIENTE' | 'EN_CURSO' | 'COMPLETADA'): boolean {
+    return this.filtroEstado === 'TODOS' || this.filtroEstado === estado;
+  }
+
+  // Total de pendientes que pasan el filtro (para el contador real)
+  get tareasPendientesTotal() {
+    return this.aplicarFiltros(this.tareasAsignadas.filter(t => t.estado === 'PENDIENTE'));
+  }
+  // Solo las que se renderizan (limitadas)
+  get tareasPendientes() {
+    return this.tareasPendientesTotal.slice(0, this.limitePendientes);
+  }
+  verMasPendientes() {
+    this.limitePendientes += 10;
+  }
+  get tareasEnCurso() {
+    return this.aplicarFiltros(this.tareasAsignadas.filter(t => t.estado === 'EN_CURSO'));
+  }
+  // Total de completadas que pasan el filtro (para mostrar el contador real)
+  get tareasCompletadasTotal() {
+    return this.aplicarFiltros(this.tareasAsignadas.filter(t => t.estado === 'COMPLETADA'));
+  }
+  // Solo las que se renderizan (limitadas para no listar miles)
+  get tareasCompletadas() {
+    return this.tareasCompletadasTotal.slice(0, this.limiteCompletadas);
+  }
+
+  verMasCompletadas() {
+    this.limiteCompletadas += 10;
+  }
+
+  limpiarFiltros() {
+    this.filtroBusqueda = '';
+    this.filtroEstado = 'TODOS';
+    this.filtroOrden = 'reciente';
+    this.limitePendientes = 10;
+    this.limiteCompletadas = 10;
+  }
 
   realizarTarea(tareaAsignadaId: string, tramiteId: string, nodoKey: string) {
     // Al abrir una tarea PENDIENTE, la pasamos a EN_CURSO

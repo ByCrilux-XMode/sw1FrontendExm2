@@ -51,6 +51,21 @@ export class EditorPoliticas implements OnInit {
   public chatHistory: { role: 'user' | 'bot', text: string }[] = [];
   public isLoading: boolean = false;
 
+  // ── Panel de propiedades del nodo seleccionado ─────────────────────────────
+  public nodoSeleccionado: any = null;
+  public editPermisos: string[] = [];
+  public readonly ACCIONES_ARCHIVO = ['abrir', 'descargar', 'editar'];
+  //animacion de carga
+  public currentLoadingMessage: string = '';
+  private loadingInterval: any;
+  private loadingMessages: string[] = [
+    'Interpretando solicitud de la política...',
+    'Estructurando departamentos y carriles...',
+    'Construyendo nodos y actividades...',
+    'Validando conexiones y tipos de entrada...',
+    'Ensamblando JSON estricto...',
+    'Afinando detalles visuales...'
+  ];
   public paletteNodeData: Array<go.ObjectData> = [
     { category: 'Initial', key: 'p_initial' },
     { category: 'Activity', key: 'p_activity', text: 'Nueva Actividad', tasks: [] },
@@ -180,6 +195,13 @@ export class EditorPoliticas implements OnInit {
 
     const dia = $(go.Diagram, {
       'undoManager.isEnabled': true,
+      layout: $(go.LayeredDigraphLayout, {
+        direction: 0,         // Izquierda a derecha
+        layerSpacing: 100,    // Separación horizontal general
+        columnSpacing: 50,    // Separación vertical general
+        setsPortSpots: false,  // Respeta los puertos que ya definiste (Top, Bottom, Left, Right)
+        isOngoing: false        // Fuerza a que se reordene cuando la IA inyecta datos
+      }),
       "resizingTool.isEnabled": true,
       allowDrop: true,
       mouseDrop: (e) => {
@@ -220,6 +242,21 @@ export class EditorPoliticas implements OnInit {
     dia.nodeTemplateMap = this.diaConfig.getNodeTemplateMap();
     dia.linkTemplate = this.diaConfig.getLinkTemplate();
     dia.groupTemplateMap = this.diaConfig.getGroupTemplateMap();
+
+    // Panel de propiedades: actualizar al cambiar la selección
+    dia.addDiagramListener('ChangedSelection', (_e) => {
+      const sel = dia.selection.first();
+      this.ngZone.run(() => {
+        if (sel instanceof go.Node && sel.data?.category === 'Activity') {
+          this.nodoSeleccionado = sel.data;
+          this.editPermisos = [...(sel.data.accionesPermitidas ?? ['abrir', 'descargar', 'editar'])];
+        } else {
+          this.nodoSeleccionado = null;
+          this.editPermisos = [];
+        }
+        this.cdr.detectChanges();
+      });
+    });
 
     return dia;
   }
@@ -504,8 +541,8 @@ export class EditorPoliticas implements OnInit {
     const userText = this.currentPrompt;
     this.chatHistory.push({ role: 'user', text: userText });
     this.currentPrompt = '';
-    this.isLoading = true;
-
+    //this.isLoading = true;
+    this.iniciarMensajesDeEspera();
     const esquemaActual = {
       nodeDataArray: this.diagramNodeData,
       linkDataArray: this.diagramLinkData
@@ -515,11 +552,12 @@ export class EditorPoliticas implements OnInit {
       next: (response) => {
         console.log("Respuesta cruda de Gemma:", response);
         const rawOutput = response.response;
-        
+
         if (!rawOutput) {
           console.warn("La IA devolvió una respuesta vacía.");
           this.chatHistory.push({ role: 'bot', text: "Lo siento, no pude generar una respuesta. Intenta de nuevo." });
-          this.isLoading = false;
+          //this.isLoading = false;
+          this.detenerMensajesDeEspera();
           this.cdr.detectChanges();
           return;
         }
@@ -564,20 +602,43 @@ export class EditorPoliticas implements OnInit {
           console.warn("No se encontró JSON en la respuesta de la IA.");
         }
 
-        this.isLoading = false;
+        //this.isLoading = false;
+        this.detenerMensajesDeEspera();
         this.scrollToBottom();
         this.cdr.detectChanges();
       },
       error: (err) => {
         console.error("Error en enviarPromptAI:", err);
-        this.chatHistory.push({ role: 'bot', text: "Error de conexión con el agente local. Verifica que Ollama esté corriendo." });
-        this.isLoading = false;
+        this.chatHistory.push({ role: 'bot', text: "Error de conexión con el servidor de IA (OpenRouter). Revisa la consola (F12)" });
+        //this.isLoading = false;
+        this.detenerMensajesDeEspera();
         this.cdr.detectChanges();
       }
     });
   }
 
   private aplicarYNotificar(nuevoEsquema: any) {
+
+    // VIGILANTE DE LA IA: Validar los Lanes antes de dibujarlos
+    if (nuevoEsquema && nuevoEsquema.nodeDataArray) {
+      nuevoEsquema.nodeDataArray.forEach((node: any) => {
+        if (node.category === 'Lane') {
+          const nodeText = (node.text || '').trim().toUpperCase();
+
+          // Buscamos si la IA usó un departamento que ya existe
+          const existingDept = this.departamentos.find(d => d.nombre.toUpperCase() === nodeText);
+
+          if (existingDept) {
+            // Si ya existe, le inyectamos el ID real de la BD
+            node.key = existingDept.id;
+            node.isNewDept = false;
+          } else {
+            // Si la IA inventó un departamento nuevo, lo marcamos para crearlo al publicar
+            node.isNewDept = true;
+          }
+        }
+      });
+    }
     // 1. Actualizamos el diagrama localmente
     this.diagramNodeData = nuevoEsquema.nodeDataArray;
     this.diagramLinkData = nuevoEsquema.linkDataArray;
@@ -595,6 +656,62 @@ export class EditorPoliticas implements OnInit {
         this.cdr.detectChanges();
       }
     });
+  }
+
+  // ── Panel de propiedades ──────────────────────────────────────────────────
+
+  tienePermisoEdit(accion: string): boolean {
+    return this.editPermisos.includes(accion);
+  }
+
+  togglePermiso(accion: string): void {
+    if (!this.nodoSeleccionado || !this.diagramComponent?.diagram) return;
+
+    const idx = this.editPermisos.indexOf(accion);
+    if (idx >= 0) {
+      this.editPermisos.splice(idx, 1);
+    } else {
+      this.editPermisos.push(accion);
+    }
+    const nuevos = [...this.editPermisos];
+
+    this.diagramComponent.diagram.startTransaction('update permisos');
+    this.diagramComponent.diagram.model.setDataProperty(
+      this.nodoSeleccionado, 'accionesPermitidas', nuevos
+    );
+    this.diagramComponent.diagram.commitTransaction('update permisos');
+
+    this.cdr.detectChanges();
+  }
+
+  cerrarPanelPropiedades(): void {
+    this.nodoSeleccionado = null;
+    this.editPermisos = [];
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+
+  private iniciarMensajesDeEspera() {
+    this.isLoading = true;
+    let index = 0;
+    this.currentLoadingMessage = this.loadingMessages[0];
+
+    this.loadingInterval = setInterval(() => {
+      index++;
+      if (index < this.loadingMessages.length) {
+        this.currentLoadingMessage = this.loadingMessages[index];
+        // Forzamos la actualización de la vista de Angular
+        this.cdr.detectChanges();
+      }
+    }, 2500);
+  }
+
+  private detenerMensajesDeEspera() {
+    this.isLoading = false;
+    this.currentLoadingMessage = '';
+    if (this.loadingInterval) {
+      clearInterval(this.loadingInterval);
+    }
   }
 
   private scrollToBottom() {

@@ -44,11 +44,18 @@
                 <td class="ps-3 fw-bold">{{ formatearNombreTarea(res.key) }}</td>
                 <td>
                   <div *ngIf="isUrl(res.value)" class="btn-group">
-                    <a [href]="res.value" target="_blank" class="btn btn-sm btn-outline-primary">
+                    <a *ngIf="tienePermiso(res.key, 'abrir')" [href]="res.value" target="_blank"
+                      class="btn btn-sm btn-outline-primary">
                       <i class="bi bi-eye"></i> Ver
                     </a>
-                    <button class="btn btn-sm btn-success text-white" (click)="descargarDocumento(res.value, res.key)">
+                    <button *ngIf="tienePermiso(res.key, 'descargar')" class="btn btn-sm btn-success text-white"
+                      (click)="descargarDocumento(res.value, res.key)">
                       <i class="bi bi-download"></i> Descargar
+                    </button>
+                    <button *ngIf="esArchivoEditable(res.value) && tienePermiso(res.key, 'editar')"
+                      class="btn btn-sm btn-warning ms-1" (click)="abrirEditor(tramite?.id, res.value)"
+                      title="Editar documento en tiempo real">
+                      <i class="bi bi-pencil-square"></i> Editar Colaborativo
                     </button>
                   </div>
 

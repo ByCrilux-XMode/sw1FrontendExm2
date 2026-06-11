@@ -27,15 +27,50 @@
     
     <!-- Pestaña 1: Bandeja de Tareas -->
     <div *ngIf="activeTab === 'bandeja_tareas'">
+
+      <!-- Filtro inteligente -->
+      <div class="card bg-dark border-secondary mb-4">
+        <div class="card-body py-3">
+          <div class="row g-2 align-items-end">
+            <div class="col-md-4">
+              <label class="form-label small text-muted mb-1">Buscar</label>
+              <input type="text" class="form-control form-control-sm bg-dark text-light border-secondary"
+                     placeholder="Nombre de tarea o ID de trámite..."
+                     [(ngModel)]="filtroBusqueda">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label small text-muted mb-1">Estado</label>
+              <select class="form-select form-select-sm bg-dark text-light border-secondary" [(ngModel)]="filtroEstado">
+                <option value="TODOS">Todos</option>
+                <option value="PENDIENTE">Pendientes</option>
+                <option value="EN_CURSO">En curso</option>
+                <option value="COMPLETADA">Completadas</option>
+              </select>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label small text-muted mb-1">Ordenar por</label>
+              <select class="form-select form-select-sm bg-dark text-light border-secondary" [(ngModel)]="filtroOrden">
+                <option value="reciente">Más recientes</option>
+                <option value="antiguo">Más antiguas</option>
+                <option value="nombre">Nombre (A-Z)</option>
+              </select>
+            </div>
+            <div class="col-md-2">
+              <button class="btn btn-sm btn-outline-light w-100" (click)="limpiarFiltros()">Limpiar</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div class="row">
         <!-- PENDIENTES -->
-        <div class="col-md-4">
+        <div class="col-md-4" *ngIf="mostrarColumna('PENDIENTE')">
           <div class="card bg-dark border-warning">
             <div class="card-header bg-warning text-dark font-weight-bold">
-              PENDIENTES ({{ tareasPendientes.length }})
+              PENDIENTES ({{ tareasPendientesTotal.length }})
             </div>
             <div class="card-body">
-              <div *ngIf="tareasPendientes.length === 0" class="text-muted">No hay tareas pendientes.</div>
+              <div *ngIf="tareasPendientesTotal.length === 0" class="text-muted">No hay tareas pendientes.</div>
               <div *ngFor="let t of tareasPendientes" class="task-item border-warning">
                 <h5>{{ t.nombreTarea }}</h5>
                 <p class="small text-muted">Trámite ID: {{ t.tramiteId }}</p>
@@ -44,12 +79,17 @@
                   <button class="btn btn-sm btn-outline-light" (click)="verDetalle(t.tramiteId)">Ver Detalle</button>
                 </div>
               </div>
+              <button *ngIf="tareasPendientesTotal.length > tareasPendientes.length"
+                      class="btn btn-sm btn-warning w-100 mt-2"
+                      (click)="verMasPendientes()">
+                Ver más ({{ tareasPendientesTotal.length - tareasPendientes.length }} restantes)
+              </button>
             </div>
           </div>
         </div>
 
         <!-- EN CURSO -->
-        <div class="col-md-4">
+        <div class="col-md-4" *ngIf="mostrarColumna('EN_CURSO')">
           <div class="card bg-dark border-success">
             <div class="card-header bg-success text-white font-weight-bold">
               EN CURSO ({{ tareasEnCurso.length }})
@@ -69,18 +109,23 @@
         </div>
 
         <!-- COMPLETADAS -->
-        <div class="col-md-4">
+        <div class="col-md-4" *ngIf="mostrarColumna('COMPLETADA')">
           <div class="card bg-dark border-secondary">
             <div class="card-header bg-secondary text-white font-weight-bold">
-              COMPLETADAS ({{ tareasCompletadas.length }})
+              COMPLETADAS ({{ tareasCompletadasTotal.length }})
             </div>
             <div class="card-body">
-              <div *ngIf="tareasCompletadas.length === 0" class="text-muted">No hay tareas completadas.</div>
+              <div *ngIf="tareasCompletadasTotal.length === 0" class="text-muted">No hay tareas completadas.</div>
               <div *ngFor="let t of tareasCompletadas" class="task-item border-secondary opacity-50">
                 <h5>{{ t.nombreTarea }}</h5>
                 <p class="small text-muted">Finalizada: {{ t.fechaFin | date:'short' }}</p>
                 <button class="btn btn-sm btn-outline-light mt-2" (click)="verDetalle(t.tramiteId)">Ver Detalle</button>
               </div>
+              <button *ngIf="tareasCompletadasTotal.length > tareasCompletadas.length"
+                      class="btn btn-sm btn-secondary w-100 mt-2"
+                      (click)="verMasCompletadas()">
+                Ver más ({{ tareasCompletadasTotal.length - tareasCompletadas.length }} restantes)
+              </button>
             </div>
           </div>
         </div>

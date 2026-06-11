@@ -1,0 +1,185 @@
+<div class="container-fluid py-4">
+
+  <!-- Cabecera -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h2 class="fw-bold mb-0">Gestión Global de Trámites</h2>
+      <small class="text-muted">Vista de administración — todos los trámites del sistema</small>
+    </div>
+    <button class="btn btn-outline-primary btn-sm" (click)="cargarTramites()" [disabled]="isLoading()">
+      <i class="bi bi-arrow-clockwise"></i> Actualizar
+    </button>
+  </div>
+
+  <!-- Error -->
+  <div *ngIf="error()" class="alert alert-danger">{{ error() }}</div>
+
+  <!-- Loading -->
+  <div *ngIf="isLoading()" class="text-center py-5">
+    <div class="spinner-border text-primary"></div>
+    <p class="mt-2 text-muted">Cargando trámites...</p>
+  </div>
+
+  <!-- Tabla -->
+  <div *ngIf="!isLoading() && !error()" class="card shadow-sm border-0">
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="table-dark">
+            <tr>
+              <th class="ps-3">Fecha Inicio</th>
+              <th>Cliente</th>
+              <th>Política</th>
+              <th>Estado</th>
+              <th>Respuestas</th>
+              <th class="text-center">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let t of tramites()">
+              <td class="ps-3 text-nowrap">
+                <small>{{ t.fechaInicio | date:'dd/MM/yyyy HH:mm' }}</small>
+              </td>
+              <td>
+                <div class="fw-semibold">{{ t.clienteNombre || t.clienteId }}</div>
+                <small class="text-muted">{{ t.clienteEmail }}</small>
+              </td>
+              <td>
+                <span class="badge bg-secondary">{{ t.politicaNombre || t.politicaId }}</span>
+              </td>
+              <td>
+                <span class="badge"
+                  [class.bg-warning]="t.estadoActual === 'INICIADO'"
+                  [class.text-dark]="t.estadoActual === 'INICIADO'"
+                  [class.bg-info]="t.estadoActual === 'EN_PROCESO'"
+                  [class.bg-success]="t.estadoActual === 'FINALIZADO'">
+                  {{ t.estadoActual }}
+                </span>
+              </td>
+              <td>
+                <span class="text-muted small">
+                  {{ (t.respuestas | keyvalue)?.length ?? 0 }} respuesta(s)
+                </span>
+              </td>
+              <td class="text-center">
+                <button class="btn btn-sm btn-outline-warning" (click)="abrirModal(t)"
+                  title="Editar trámite">
+                  <i class="bi bi-pencil-square"></i> Editar
+                </button>
+              </td>
+            </tr>
+
+            <tr *ngIf="tramites().length === 0">
+              <td colspan="6" class="text-center py-4 text-muted">No hay trámites registrados.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     MODAL DE EDICIÓN
+════════════════════════════════════════════════════════ -->
+<div *ngIf="tramiteSeleccionado" class="modal-backdrop-custom">
+  <div class="modal-dialog-custom">
+    <div class="card shadow-lg border-0">
+
+      <!-- Header -->
+      <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+        <h5 class="mb-0"><i class="bi bi-pencil-square me-2"></i>Editar Trámite</h5>
+        <button class="btn-close btn-close-white" (click)="cerrarModal()"></button>
+      </div>
+
+      <div class="card-body overflow-auto" style="max-height: 75vh;">
+
+        <!-- IDs inmutables (solo lectura) -->
+        <div class="alert alert-secondary py-2 mb-3">
+          <small><strong>ID Trámite:</strong> {{ tramiteSeleccionado.id }}</small><br>
+          <small><strong>Cliente ID:</strong>
+            <input class="form-control form-control-sm d-inline-block w-auto ms-1"
+              [value]="tramiteSeleccionado.clienteId" disabled readonly>
+          </small><br>
+          <small><strong>Política ID:</strong>
+            <input class="form-control form-control-sm d-inline-block w-auto ms-1"
+              [value]="tramiteSeleccionado.politicaId" disabled readonly>
+          </small>
+        </div>
+
+        <!-- Estado -->
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Estado Actual</label>
+          <select class="form-select" [(ngModel)]="editEstadoActual">
+            <option *ngFor="let e of ESTADOS" [value]="e">{{ e }}</option>
+          </select>
+        </div>
+
+        <!-- Respuestas + Permisos -->
+        <div class="mb-2">
+          <label class="form-label fw-semibold">Respuestas y Permisos por Tarea</label>
+          <p class="text-muted small mb-2">
+            Los checkboxes controlan qué acciones están disponibles para cada archivo.
+          </p>
+
+          <div *ngFor="let res of editRespuestas | keyvalue; trackBy: trackByKey"
+            class="border rounded p-2 mb-2">
+
+            <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+              <!-- Nombre y valor de la respuesta -->
+              <div class="flex-grow-1">
+                <div class="fw-semibold small">{{ formatearClave(res.key) }}</div>
+                <div *ngIf="isUrl(res.value)" class="text-truncate" style="max-width: 300px;">
+                  <a [href]="res.value" target="_blank" class="small text-primary">
+                    <i class="bi bi-link-45deg"></i> {{ res.value }}
+                  </a>
+                </div>
+                <div *ngIf="!isUrl(res.value)">
+                  <input class="form-control form-control-sm mt-1"
+                    [(ngModel)]="editRespuestas[res.key]"
+                    [ngModelOptions]="{standalone: true}">
+                </div>
+              </div>
+
+              <!-- Checkboxes de permisos -->
+              <div *ngIf="editAccionesPermitidas[res.key] !== undefined"
+                class="d-flex gap-2 flex-wrap">
+                <div *ngFor="let accion of ACCIONES" class="form-check form-check-inline mb-0">
+                  <input class="form-check-input" type="checkbox"
+                    [id]="res.key + '_' + accion"
+                    [checked]="tieneAccion(res.key, accion)"
+                    (change)="toggleAccion(res.key, accion)">
+                  <label class="form-check-label small" [for]="res.key + '_' + accion">
+                    {{ accion }}
+                  </label>
+                </div>
+              </div>
+              <div *ngIf="editAccionesPermitidas[res.key] === undefined" class="text-muted small">
+                <em>Sin permisos registrados</em>
+              </div>
+            </div>
+
+          </div>
+
+          <div *ngIf="(editRespuestas | keyvalue)?.length === 0" class="text-muted small">
+            Este trámite no tiene respuestas aún.
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Footer -->
+      <div class="card-footer d-flex justify-content-end gap-2">
+        <button class="btn btn-secondary" (click)="cerrarModal()" [disabled]="isSaving()">
+          Cancelar
+        </button>
+        <button class="btn btn-primary" (click)="guardarCambios()" [disabled]="isSaving()">
+          <span *ngIf="isSaving()" class="spinner-border spinner-border-sm me-1"></span>
+          {{ isSaving() ? 'Guardando...' : 'Guardar Cambios' }}
+        </button>
+      </div>
+
+    </div>
+  </div>
+</div>

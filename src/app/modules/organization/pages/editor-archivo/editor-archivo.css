@@ -1,0 +1,67 @@
+.editor-layout {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+}
+
+.editor-container {
+    overflow-y: auto;
+}
+
+.editor-paper {
+    border-radius: 4px;
+    border: 1px solid #e0e0e0;
+}
+
+/* TipTap ProseMirror Styles */
+:host ::ng-deep .ProseMirror {
+    outline: none !important;
+    min-height: 700px;
+}
+
+:host ::ng-deep .ProseMirror > * + * {
+    margin-top: 0.75em;
+}
+
+:host ::ng-deep .ProseMirror ul,
+:host ::ng-deep .ProseMirror ol {
+    padding: 0 1rem;
+}
+
+:host ::ng-deep .ProseMirror h1,
+:host ::ng-deep .ProseMirror h2,
+:host ::ng-deep .ProseMirror h3 {
+    line-height: 1.1;
+}
+
+:host ::ng-deep .ProseMirror blockquote {
+    padding-left: 1rem;
+    border-left: 3px solid #dee2e6;
+    color: #6c757d;
+}
+
+/* Collaboration Cursors */
+:host ::ng-deep .collaboration-cursor__caret {
+    border-left: 1px solid #0d6efd;
+    border-right: 1px solid #0d6efd;
+    margin-left: -1px;
+    margin-right: -1px;
+    pointer-events: none;
+    position: relative;
+    word-break: normal;
+}
+
+:host ::ng-deep .collaboration-cursor__label {
+    border-radius: 3px 3px 3px 0;
+    color: #fff;
+    font-size: 12px;
+    font-style: normal;
+    font-weight: 600;
+    left: -1px;
+    line-height: normal;
+    padding: 0.1rem 0.3rem;
+    position: absolute;
+    top: -1.4em;
+    user-select: none;
+    white-space: nowrap;
+}

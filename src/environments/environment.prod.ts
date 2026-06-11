@@ -1,6 +1,7 @@
 export const environment = {
     production: true,
-    apiUrl: 'https://sw1frontexm1-614166022463.southamerica-east1.run.app',
+    //apiUrl: 'http://localhost:8080',
+    piUrl: 'https://sw1backendexm2-614166022463.southamerica-east1.run.app',
     urlIA: '',
     firebase: {
         apiKey: "AIzaSyDYHYJOj6tJlxAr7krcaVBzUI6lJBCTKHw",

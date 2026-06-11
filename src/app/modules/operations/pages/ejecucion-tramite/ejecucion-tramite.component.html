@@ -30,8 +30,66 @@
 
       <!-- Tareas tipo ACTIVITY -->
       <div *ngIf="nodo.category === 'Activity' || nodo.category === undefined" class="task-body">
+
+        <!-- ===== SMART FORM FILLING (Rellenado inteligente con IA) ===== -->
+        <div class="smart-fill-box mb-3 p-2 border rounded bg-light">
+          <label class="fw-bold d-block mb-1">
+            <i class="bi bi-magic"></i> Rellenado inteligente con IA
+          </label>
+          <small class="text-muted d-block mb-2">
+            Sube una foto del documento y la IA intentará completar los campos por ti.
+          </small>
+
+          <div class="d-flex align-items-center gap-2">
+            <input type="file" accept="image/*" class="form-control form-control-sm"
+                   #iaFileInput
+                   (change)="onFileSelectedIA($event, nodo)"
+                   [disabled]="cargandoIA">
+            <button class="btn btn-sm btn-outline-primary text-nowrap"
+                    type="button"
+                    (click)="iaFileInput.click()"
+                    [disabled]="cargandoIA">
+              <i class="bi bi-stars"></i> Rellenar con IA
+            </button>
+          </div>
+
+          <!-- Estado de carga -->
+          <div *ngIf="cargandoIA" class="text-info mt-2">
+            <small>
+              <span class="spinner-border spinner-border-sm"></span>
+              Analizando documento con IA...
+            </small>
+          </div>
+
+          <!-- Mensaje de error robusto -->
+          <div *ngIf="errorIA" class="alert alert-warning py-2 px-3 mt-2 mb-0">
+            <small>{{ errorIA }}</small>
+          </div>
+        </div>
+
+        <!-- Panel de revisión: ACEPTAR o EDITAR -->
+        <div *ngIf="mostrarPanelSugerencias && datosSugeridos" class="alert alert-info mt-2">
+          <h6 class="mb-2"><i class="bi bi-robot"></i> La IA ha extraído estos datos:</h6>
+          <ul class="mb-2 ps-3">
+            <li *ngFor="let campo of getSugerenciasKeys()">
+              <strong>{{ campo }}:</strong>
+              {{ datosSugeridos[campo] !== null && datosSugeridos[campo] !== undefined ? datosSugeridos[campo] : '(no encontrado)' }}
+            </li>
+          </ul>
+          <p class="mb-2"><small>¿Deseas aplicarlos al formulario?</small></p>
+          <div class="d-flex gap-2">
+            <button class="btn btn-sm btn-success" (click)="aceptarSugerencias()">
+              <i class="bi bi-check-lg"></i> Aceptar
+            </button>
+            <button class="btn btn-sm btn-outline-secondary" (click)="editarSugerencias()">
+              <i class="bi bi-pencil"></i> Editar manualmente
+            </button>
+          </div>
+        </div>
+        <!-- ===== FIN SMART FORM FILLING ===== -->
+
         <p>Por favor completa los siguientes campos:</p>
-        
+
         <div *ngFor="let task of nodo.tasks" class="dynamic-field">
           <label>{{ task.nombre }} ({{task.tipo}})</label>
           

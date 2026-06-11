@@ -2,7 +2,7 @@ import { HttpInterceptorFn } from '@angular/common/http';
 
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
   // 0. Si la petición es para la IA, no añadimos el token (evita problemas de CORS innecesarios)
-  if (req.url.includes('ngrok-free.dev') || req.url.includes('/api/generate')) {
+  if (req.url.includes('ngrok-free.dev') || req.url.includes('/api/generate') || req.url.includes('amazonaws.com')) {
     return next(req);
   }
 

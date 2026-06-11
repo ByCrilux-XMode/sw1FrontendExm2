@@ -13,8 +13,13 @@ export class DiagramConfig {
                     resizable: true,
                     resizeObjectName: 'MAIN_SHAPE',
                     ungroupable: true,
-                    computesBoundsAfterDrag: false,
-                    layout: this.$(go.Layout),
+                    computesBoundsAfterDrag: true,
+                    layout: this.$(go.LayeredDigraphLayout, {
+                        direction: 0,          // 0 = Flujo de izquierda a derecha
+                        layerSpacing: 80,      // Espacio horizontal entre tareas
+                        columnSpacing: 40,     // Espacio vertical si hay tareas en paralelo
+                        isOngoing: false        // Fuerza a que se reordene cuando la IA inyecta datos
+                    }),
                     handlesDragDropForMembers: true,
                     mouseDrop: (e, grp) => {
                         const ok = (grp as go.Group).addMembers(e.diagram.selection, true);
@@ -44,12 +49,12 @@ export class DiagramConfig {
     public makePort(name: string, spot: go.Spot) {
         return this.$(go.Shape, 'Circle', {
             fill: 'transparent', stroke: 'transparent',
-            desiredSize: new go.Size(10, 10),
+            desiredSize: new go.Size(14, 14),
             portId: name,
             alignment: spot,
             fromLinkable: true, toLinkable: true,
             fromSpot: spot, toSpot: spot,
-            cursor: 'crosshair',
+            cursor: 'pointer',
             mouseEnter: (_e: any, port: any) => { port.fill = '#4CAF50'; port.stroke = '#4CAF50'; },
             mouseLeave: (_e: any, port: any) => { port.fill = 'transparent'; port.stroke = 'transparent'; }
         });
@@ -100,15 +105,34 @@ export class DiagramConfig {
             )
         );
 
+        // Helper: indicador visual de permiso (solo lectura — la edición es en el panel lateral)
+        const makePermisoToggle = (accion: string) => {
+            return this.$(go.Panel, 'Auto',
+                { margin: new go.Margin(0, 3, 0, 0) },
+                this.$(go.Shape, 'RoundedRectangle',
+                    { parameter1: 3, strokeWidth: 1 },
+                    new go.Binding('fill', 'accionesPermitidas', (arr: string[]) =>
+                        arr && arr.includes(accion) ? '#1b5e20' : '#37474f'),
+                    new go.Binding('stroke', 'accionesPermitidas', (arr: string[]) =>
+                        arr && arr.includes(accion) ? '#69f0ae' : '#607d8b')
+                ),
+                this.$(go.TextBlock, accion,
+                    { font: '7pt sans-serif', margin: new go.Margin(2, 5), stroke: '#ffffff' }
+                )
+            );
+        };
+
         map.add('Activity',
             this.$(go.Node, 'Spot',
                 { locationSpot: go.Spot.Center, resizable: true, resizeObjectName: 'SHAPE_ACT' },
                 new go.Binding('location', 'loc', go.Point.parse).makeTwoWay(go.Point.stringify),
+                // Binding bidireccional para persistir accionesPermitidas en el JSON
+                new go.Binding('accionesPermitidas', 'accionesPermitidas').makeTwoWay(),
                 // Forma principal
                 this.$(go.Shape, 'RoundedRectangle', {
                     name: 'SHAPE_ACT',
                     fill: '#16213e', stroke: '#4fc3f7', strokeWidth: 2,
-                    parameter1: 10, minSize: new go.Size(200, 120)
+                    parameter1: 10, minSize: new go.Size(200, 150)
                 }, new go.Binding('desiredSize', 'size', go.Size.parse).makeTwoWay(go.Size.stringify)),
 
                 this.$(go.Panel, 'Vertical',
@@ -127,45 +151,28 @@ export class DiagramConfig {
                         this.$(go.TextBlock, "Tipo de Entrada", { stroke: '#9fa8da', font: 'bold 8pt sans-serif', width: 90 })
                     ),
 
-                    // LISTA DINÁMICA DE TAREAS (Aquí ocurre la magia)
+                    // LISTA DINÁMICA DE TAREAS
                     this.$(go.Panel, 'Vertical', {
                         name: 'LISTA_TAREAS',
-                        // Cada fila de la lista se define aquí
                         itemTemplate: this.$(go.Panel, 'Horizontal',
                             { margin: new go.Margin(2, 0) },
-                            // Nombre de la tarea (Editable)
                             this.$(go.TextBlock, {
                                 stroke: '#e0e0e0', font: '9pt sans-serif', width: 100,
                                 editable: true, isMultiline: false
                             }, new go.Binding('text', 'nombre').makeTwoWay()),
-
-                            // Selector de Tipo (Editable con ciclo de opciones mediante clic)
                             this.$(go.TextBlock,
                                 {
                                     name: "TIPO_TEXT",
-                                    stroke: '#ffca28',
-                                    font: 'bold 9pt sans-serif',
-                                    width: 100,
-                                    // Mantenemos editable por si quieres escribir, pero el click es lo principal
-                                    editable: false,
-                                    isMultiline: false,
-                                    cursor: "pointer", // Cambia el cursor para indicar que es interactivo
-
-                                    // LÓGICA DE CICLO: Cambia el tipo al hacer clic
+                                    stroke: '#ffca28', font: 'bold 9pt sans-serif', width: 100,
+                                    editable: false, isMultiline: false, cursor: "pointer",
                                     click: (e: go.InputEvent, obj: go.GraphObject) => {
                                         const choices = ["TEXTO", "NUMERO", "FECHA", "IMAGEN", "DOCUMENTO", "CHECKBOX"];
-
-                                        // Obtenemos el panel de la fila actual de forma segura para evitar el error 'possibly null'
                                         const panel = obj.panel;
                                         if (!panel) return;
-
                                         const taskData = panel.data;
                                         if (!taskData) return;
-
                                         const current = taskData.tipo || "TEXTO";
                                         const nextIndex = (choices.indexOf(current) + 1) % choices.length;
-
-                                        // Actualizamos la propiedad en el modelo para que el cambio sea reactivo y persistente
                                         e.diagram.startTransaction("change tipo");
                                         e.diagram.model.setDataProperty(taskData, "tipo", choices[nextIndex]);
                                         e.diagram.commitTransaction("change tipo");
@@ -174,7 +181,7 @@ export class DiagramConfig {
                                 new go.Binding('text', 'tipo').makeTwoWay()
                             )
                         )
-                    }, new go.Binding('itemArray', 'tasks')), // Vinculado al array 'tasks'
+                    }, new go.Binding('itemArray', 'tasks')),
 
                     // BOTÓN PARA AGREGAR TAREA
                     this.$('Button',
@@ -184,7 +191,6 @@ export class DiagramConfig {
                                 const node = obj.part;
                                 if (node) {
                                     const tasks = node.data.tasks || [];
-                                    // Insertamos un objeto nuevo con los campos que necesitas
                                     e.diagram.startTransaction("add tarea");
                                     e.diagram.model.insertArrayItem(tasks, -1, { nombre: "Nueva tarea", tipo: "TEXTO" });
                                     e.diagram.commitTransaction("add tarea");
@@ -197,12 +203,11 @@ export class DiagramConfig {
                     // BOTÓN PARA ELIMINAR TAREA
                     this.$('Button',
                         {
-                            margin: new go.Margin(8, 0, 0, 0),
+                            margin: new go.Margin(4, 0, 0, 0),
                             click: (e, obj) => {
                                 const node = obj.part;
                                 if (node) {
                                     const tasks = node.data.tasks || [];
-                                    // Insertamos un objeto nuevo con los campos que necesitas
                                     e.diagram.startTransaction("delete tarea");
                                     e.diagram.model.removeArrayItem(tasks, -1);
                                     e.diagram.commitTransaction("delete tarea");
@@ -210,6 +215,19 @@ export class DiagramConfig {
                             }
                         },
                         this.$(go.TextBlock, "- Eliminar Tarea", { font: "8pt sans-serif", margin: 4 })
+                    ),
+
+                    // ── SECCIÓN DE PERMISOS ──────────────────────────────────
+                    this.$(go.Panel, 'Vertical',
+                        { defaultAlignment: go.Spot.Left, margin: new go.Margin(8, 0, 0, 0) },
+                        this.$(go.TextBlock, "Permisos de archivo:",
+                            { stroke: '#9fa8da', font: 'bold 7pt sans-serif', margin: new go.Margin(0, 0, 4, 0) }
+                        ),
+                        this.$(go.Panel, 'Horizontal',
+                            makePermisoToggle('abrir'),
+                            makePermisoToggle('descargar'),
+                            makePermisoToggle('editar')
+                        )
                     )
                 ),
 

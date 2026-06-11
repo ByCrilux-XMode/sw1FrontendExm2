@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { TramiteResponseDTO, RegistrarTramiteRequestDTO } from '../../data/interfaces/tramite.interface';
+import { TramiteResponseDTO, RegistrarTramiteRequestDTO, AdminTramite, AdminUpdateTramitePayload } from '../../data/interfaces/tramite.interface';
 
 @Injectable({
     providedIn: 'root'
@@ -29,5 +29,15 @@ export class TramiteService {
     // Eliminar trámite si es necesario
     eliminar(id: string): Observable<void> {
         return this.http.delete<void>(`${this.apiUrl}/${id}`);
+    }
+
+    // ── Admin ─────────────────────────────────────────────────────────────────
+
+    obtenerTodosLosTramitesAdmin(): Observable<AdminTramite[]> {
+        return this.http.get<AdminTramite[]>(`${this.apiUrl}/admin`);
+    }
+
+    actualizarTramiteAdmin(id: string, datos: AdminUpdateTramitePayload): Observable<AdminTramite> {
+        return this.http.put<AdminTramite>(`${this.apiUrl}/admin/${id}`, datos);
     }
 }

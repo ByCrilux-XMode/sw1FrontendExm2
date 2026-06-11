@@ -40,6 +40,33 @@
       <gojs-diagram [initDiagram]="initDiagram" [nodeDataArray]="diagramNodeData" [linkDataArray]="diagramLinkData"
         [divClassName]="diagramDivClassName" (modelChange)="diagramModelChange($event)">
       </gojs-diagram>
+
+      <!-- ── Panel flotante de permisos por nodo Activity ── -->
+      <div class="node-props-panel" *ngIf="nodoSeleccionado">
+        <div class="node-props-header">
+          <span><i class="bi bi-shield-lock"></i>&nbsp;Permisos del nodo</span>
+          <button class="node-props-close" (click)="cerrarPanelPropiedades()" title="Cerrar">
+            <i class="bi bi-x"></i>
+          </button>
+        </div>
+        <div class="node-props-name">{{ nodoSeleccionado.text || nodoSeleccionado.key }}</div>
+        <div class="node-props-body">
+          <label class="perm-row" *ngFor="let accion of ACCIONES_ARCHIVO">
+            <input
+              type="checkbox"
+              [checked]="tienePermisoEdit(accion)"
+              (change)="togglePermiso(accion)"
+            />
+            <span class="perm-label">{{ accion }}</span>
+            <span class="perm-badge"
+              [style.background]="tienePermisoEdit(accion) ? '#1b5e20' : '#37474f'"
+              [style.color]="tienePermisoEdit(accion) ? '#69f0ae' : '#90a4ae'">
+              {{ tienePermisoEdit(accion) ? 'ON' : 'OFF' }}
+            </span>
+          </label>
+        </div>
+      </div>
+      <!-- ───────────────────────────────────────────────── -->
     </main>
     <aside class="ai-sidebar">
       <div class="ai-header">
@@ -60,6 +87,15 @@
           <div class="msg-tag">{{ msg.role === 'user' ? 'USER_PROMPT' : 'GEMMA_OUT' }}</div>
           <div class="msg-content">{{ msg.text }}</div>
         </div>
+
+        <div class="msg bot loading-msg" *ngIf="isLoading">
+          <div class="msg-tag blink-tag">PROCESSING...</div>
+          <div class="msg-content loading-content">
+            <div class="tech-spinner"></div>
+            <span>{{ currentLoadingMessage }}</span>
+          </div>
+        </div>
+
       </div>
       <div class="ai-input-area">
         <div class="input-wrapper">

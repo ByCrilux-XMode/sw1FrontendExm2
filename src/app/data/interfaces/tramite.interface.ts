@@ -21,3 +21,26 @@ export interface RegistrarTramiteRequestDTO {
     politicaId: string;
     personaId: string;
 }
+
+/** Vista enriquecida para la pantalla de administración global de trámites */
+export interface AdminTramite {
+    id: string;
+    clienteId: string;
+    clienteNombre: string;
+    clienteEmail: string;
+    politicaId: string;
+    politicaNombre: string;
+    estadoActual: string;
+    nodosActualesKeys: string[];
+    respuestas: { [key: string]: any };
+    accionesPermitidas: { [tareaKey: string]: string[] };
+    fechaInicio: string;
+    fechaFin?: string;
+}
+
+/** Payload editable — solo estos campos viajan al PUT /admin/{id} */
+export interface AdminUpdateTramitePayload {
+    estadoActual?: string;
+    respuestas?: { [key: string]: any };
+    accionesPermitidas?: { [tareaKey: string]: string[] };
+}

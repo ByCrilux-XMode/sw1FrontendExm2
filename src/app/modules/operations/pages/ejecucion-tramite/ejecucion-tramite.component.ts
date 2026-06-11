@@ -43,6 +43,13 @@ export class EjecucionTramiteComponent implements OnInit {
   // Formulario de respuestas
   respuestas: any = {};
 
+  // ===== SMART FORM FILLING (Rellenado inteligente con IA) =====
+  cargandoIA: boolean = false;            // Estado de carga mientras la IA procesa
+  datosSugeridos: any = null;             // Datos extraídos por la IA (temporal, sin aplicar)
+  mostrarPanelSugerencias: boolean = false; // Controla la visibilidad del panel de revisión
+  errorIA: string | null = null;          // Mensaje de error amigable si la IA falla
+  nodoSugerencias: WorkflowNode | null = null; // Nodo al que pertenecen las sugerencias
+
   constructor(
     private route: ActivatedRoute,
     private router: Router,
@@ -169,7 +176,7 @@ export class EjecucionTramiteComponent implements OnInit {
     const formData = new FormData();
     formData.append('file', file);
 
-    this.http.post<{ url: string }>(`${environment.apiUrl}/api/upload`, formData).subscribe({
+    this.http.post<{ url: string }>(`${environment.apiUrl}/api/tramites/${this.tramiteId}/documentos`, formData).subscribe({
       next: (res) => {
         this.respuestas[fieldName] = res.url;
         this.uploadingFields.delete(fieldName);
@@ -180,6 +187,172 @@ export class EjecucionTramiteComponent implements OnInit {
         this.uploadingFields.delete(fieldName);
       }
     });
+  }
+
+  // ===== SMART FORM FILLING =====
+
+  /**
+   * Devuelve la lista de "campos" rellenables por la IA para un nodo Activity.
+   * Equivale conceptualmente a Object.keys(formulario.controls), pero aquí los
+   * campos son los nombres de las tareas de tipo texto/número/fecha.
+   */
+  getCamposRellenables(nodo: WorkflowNode): string[] {
+    if (!nodo?.tasks) return [];
+    return nodo.tasks
+      .filter(t => ['TEXTO', 'NUMERO', 'FECHA'].includes(t.tipo) || t.tipo === undefined)
+      .map(t => t.nombre);
+  }
+
+  /**
+   * Maneja la selección de imagen para el rellenado inteligente:
+   * 1. Sube la imagen a S3 (reutiliza el endpoint de documentos) -> imageUrl.
+   * 2. Llama a /api/ia/extraer-datos con la imageUrl y los campos del formulario.
+   * 3. Guarda los datos en datosSugeridos y muestra el panel de revisión.
+   */
+  onFileSelectedIA(event: any, nodo: WorkflowNode) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    // Reiniciamos el estado del flujo de IA.
+    this.errorIA = null;
+    this.datosSugeridos = null;
+    this.mostrarPanelSugerencias = false;
+    this.cargandoIA = true;
+    this.nodoSugerencias = nodo;
+
+    const campos = this.getCamposRellenables(nodo);
+    if (campos.length === 0) {
+      this.cargandoIA = false;
+      this.errorIA = 'Este formulario no tiene campos de texto para rellenar con IA.';
+      event.target.value = '';
+      return;
+    }
+
+    // 1. Subir la imagen a S3 para obtener la URL pública.
+    const formData = new FormData();
+    formData.append('file', file);
+
+    this.http.post<{ url: string }>(`${environment.apiUrl}/api/tramites/${this.tramiteId}/documentos`, formData).subscribe({
+      next: (resUpload) => {
+        const imageUrl = resUpload.url;
+
+        // 2. Llamar al endpoint de extracción multimodal.
+        this.http.post<any>(`${environment.apiUrl}/api/ia/extraer-datos`, { imageUrl, campos }).subscribe({
+          next: (datos) => {
+            if (!datos || datos.error) {
+              this.errorIA = 'No pudimos reconocer el documento, por favor intenta otra foto.';
+            } else {
+              this.datosSugeridos = datos;
+              this.mostrarPanelSugerencias = true;
+            }
+            this.cargandoIA = false;
+            this.cdr.detectChanges();
+          },
+          error: () => {
+            this.errorIA = 'No pudimos reconocer el documento, por favor intenta otra foto.';
+            this.cargandoIA = false;
+            this.cdr.detectChanges();
+          }
+        });
+      },
+      error: () => {
+        this.errorIA = 'No pudimos reconocer el documento, por favor intenta otra foto.';
+        this.cargandoIA = false;
+        this.cdr.detectChanges();
+      }
+    });
+
+    // Permite volver a seleccionar la misma imagen si se reintenta.
+    event.target.value = '';
+  }
+
+  /** Lista de claves sugeridas, para iterar en el panel de revisión. */
+  getSugerenciasKeys(): string[] {
+    return this.datosSugeridos ? Object.keys(this.datosSugeridos) : [];
+  }
+
+  /**
+   * El usuario ACEPTA las sugerencias: equivale a formulario.patchValue(datosSugeridos),
+   * mapeando cada campo a su nombre dinámico real dentro de 'respuestas'.
+   */
+  aceptarSugerencias() {
+    if (!this.datosSugeridos || !this.nodoSugerencias) return;
+
+    // Mapa campo -> tipo, para saber qué campos son FECHA y normalizarlos.
+    const tipoPorCampo: { [k: string]: string } = {};
+    (this.nodoSugerencias.tasks || []).forEach(t => tipoPorCampo[t.nombre] = t.tipo);
+
+    for (const campo of Object.keys(this.datosSugeridos)) {
+      let valor = this.datosSugeridos[campo];
+      if (valor === null || valor === undefined || valor === '') continue; // Respeta los datos no encontrados.
+
+      // Los <input type="date"> exigen formato yyyy-MM-dd; normalizamos.
+      if (tipoPorCampo[campo] === 'FECHA') {
+        const fechaIso = this.normalizarFecha(String(valor));
+        if (!fechaIso) continue; // Si no se pudo interpretar, dejamos el campo manual.
+        valor = fechaIso;
+      }
+
+      const fieldName = this.getInputName(this.nodoSugerencias.key, campo);
+      this.respuestas[fieldName] = valor;
+    }
+
+    this.cerrarPanelSugerencias();
+  }
+
+  /**
+   * Convierte una fecha en cualquier formato común al formato yyyy-MM-dd que
+   * exige <input type="date">. Devuelve null si no puede interpretarla.
+   * Soporta: ISO, dd/mm/yyyy, dd-mm-yyyy, "5 de mayo de 2024", etc.
+   */
+  private normalizarFecha(valor: string): string | null {
+    const v = valor.trim();
+
+    // 1. Ya viene en ISO (yyyy-MM-dd, opcionalmente con hora) -> tomamos los 10 primeros.
+    let m = v.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (m) return `${m[1]}-${m[2]}-${m[3]}`;
+
+    // 2. Formatos dd/mm/yyyy o dd-mm-yyyy (también con año de 2 dígitos).
+    m = v.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})$/);
+    if (m) {
+      let [, d, mes, y] = m;
+      if (y.length === 2) y = '20' + y;
+      return `${y}-${mes.padStart(2, '0')}-${d.padStart(2, '0')}`;
+    }
+
+    // 3. Fechas escritas con el mes en texto (español): "5 de mayo de 2024".
+    const meses: { [k: string]: string } = {
+      enero: '01', febrero: '02', marzo: '03', abril: '04', mayo: '05', junio: '06',
+      julio: '07', agosto: '08', septiembre: '09', setiembre: '09', octubre: '10',
+      noviembre: '11', diciembre: '12'
+    };
+    m = v.toLowerCase().match(/(\d{1,2})\s*(?:de\s+)?([a-záéíóú]+)\s*(?:de\s+)?(\d{4})/);
+    if (m && meses[m[2]]) {
+      return `${m[3]}-${meses[m[2]]}-${m[1].padStart(2, '0')}`;
+    }
+
+    // 4. Último recurso: dejamos que Date intente parsearla.
+    const fecha = new Date(v);
+    if (!isNaN(fecha.getTime())) {
+      const y = fecha.getFullYear();
+      const mes = String(fecha.getMonth() + 1).padStart(2, '0');
+      const d = String(fecha.getDate()).padStart(2, '0');
+      return `${y}-${mes}-${d}`;
+    }
+
+    return null;
+  }
+
+  /** El usuario decide EDITAR manualmente: cerramos el panel sin aplicar nada. */
+  editarSugerencias() {
+    this.cerrarPanelSugerencias();
+  }
+
+  private cerrarPanelSugerencias() {
+    this.mostrarPanelSugerencias = false;
+    this.datosSugeridos = null;
+    this.nodoSugerencias = null;
+    this.cdr.detectChanges();
   }
 
   avanzarNodo(nodoKey: string | number, decisionText?: string) {

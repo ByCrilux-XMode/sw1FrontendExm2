@@ -1,6 +1,6 @@
 import { Component, OnInit, inject, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ActivatedRoute, RouterModule } from '@angular/router';
+import { ActivatedRoute, RouterModule, Router } from '@angular/router';
 import { TramiteService } from '../../../../core/services/tramite.service'
 import { Navbar } from '../../../../shared/components/navbar/navbar';
 import { TramiteResponseDTO } from '../../../../data/interfaces/tramite.interface';
@@ -14,6 +14,7 @@ import { TramiteResponseDTO } from '../../../../data/interfaces/tramite.interfac
 })
 export class DetalleTramiteComponent implements OnInit {
   private route = inject(ActivatedRoute);
+  private router = inject(Router);
   private tramiteService = inject(TramiteService);
   private cdr = inject(ChangeDetectorRef);
 
@@ -88,5 +89,38 @@ export class DetalleTramiteComponent implements OnInit {
 
   isUrl(valor: any): boolean {
     return typeof valor === 'string' && (valor.startsWith('http') || valor.includes('cloudinary'));
+  }
+
+  esArchivoEditable(url: any): boolean {
+    if (!url) return false;
+    const ruta = url.toString().toLowerCase();
+    return ruta.endsWith('.txt') || ruta.endsWith('.md') || ruta.endsWith('.docx');
+  }
+
+  /**
+   * Verifica si una acción está permitida para una tarea concreta.
+   * Retrocompatible: si accionesPermitidas no existe o no tiene la clave, permite todo.
+   */
+  tienePermiso(tareaKey: any, accion: string): boolean {
+    if (!this.tramite?.accionesPermitidas) return true;
+    const permisos: string[] | undefined = this.tramite.accionesPermitidas[tareaKey];
+    if (!permisos) return true; // sin restricción registrada → permitir
+    return permisos.includes(accion);
+  }
+
+  abrirEditor(idTramite: string | undefined, urlS3Completa: any): void {
+    if (!idTramite || !urlS3Completa) return;
+
+    let s3Key = urlS3Completa.toString();
+
+    // Extraer únicamente el Key de S3 eliminando el dominio base de Amazon
+    if (s3Key.includes('.amazonaws.com/')) {
+      s3Key = s3Key.split('.amazonaws.com/')[1];
+    }
+
+    // Navegar al editor pasándole el ID en la ruta y el S3 Key como queryParam
+    this.router.navigate(['/funcionario/editor', idTramite], {
+      queryParams: { key: s3Key }
+    });
   }
 }

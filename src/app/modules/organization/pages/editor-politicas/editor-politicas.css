@@ -399,3 +399,137 @@
   margin-top: 8px;
   letter-spacing: 1px;
 }
+
+/* Estilos para el mensaje de carga interactivo */
+.loading-content {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #4fc3f7;
+  /* Puedes ajustarlo al color de tu IA */
+  font-style: italic;
+}
+
+/* Spinner tecnológico en miniatura */
+.tech-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(79, 195, 247, 0.3);
+  border-top-color: #4fc3f7;
+  border-radius: 50%;
+  animation: tech-spin 1s linear infinite;
+}
+
+@keyframes tech-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Efecto de parpadeo para el tag "PROCESSING..." */
+.blink-tag {
+  animation: blinker 1.5s linear infinite;
+  color: #ffca28;
+  /* Color amarillo/naranja para advertir que está trabajando */
+}
+
+/* ── Panel flotante de propiedades del nodo ───────── */
+.diagram-area {
+  position: relative;
+}
+
+.node-props-panel {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 220px;
+  background: #1a1a2e;
+  border: 1px solid #3d5afe;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  z-index: 100;
+  overflow: hidden;
+  font-family: 'Segoe UI', sans-serif;
+}
+
+.node-props-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #3d5afe;
+  color: #fff;
+  padding: 8px 10px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.node-props-close {
+  background: none;
+  border: none;
+  color: #fff;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+  font-size: 1rem;
+  opacity: 0.8;
+  transition: opacity 0.15s;
+}
+
+.node-props-close:hover {
+  opacity: 1;
+}
+
+.node-props-name {
+  padding: 8px 10px 4px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #82b1ff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.node-props-body {
+  padding: 6px 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.perm-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.perm-row input[type='checkbox'] {
+  accent-color: #69f0ae;
+  width: 15px;
+  height: 15px;
+  cursor: pointer;
+}
+
+.perm-label {
+  flex: 1;
+  font-size: 0.8rem;
+  color: #e0e0e0;
+  text-transform: capitalize;
+}
+
+.perm-badge {
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 4px;
+  letter-spacing: 0.05em;
+}
+/* ────────────────────────────────────────────────── */
+
+@keyframes blinker {
+  50% {
+    opacity: 0.5;
+  }
+}

@@ -1,0 +1,36 @@
+<div class="reportes-container">
+  <header class="reportes-header">
+    <h1>Reportes Dinámicos</h1>
+    <p>Escribe en lenguaje natural lo que quieres analizar y la IA generará el gráfico.</p>
+  </header>
+
+  <div class="reportes-input">
+    <input
+      type="text"
+      [(ngModel)]="consulta"
+      (keyup.enter)="generar()"
+      [disabled]="cargando"
+      placeholder="Ej: Cuántos trámites hay por cada estado actual"
+      class="campo-texto"
+    />
+    <button (click)="generar()" [disabled]="cargando || !consulta.trim()" class="btn-generar">
+      Generar reporte
+    </button>
+  </div>
+
+  <!-- Indicador de carga -->
+  <div *ngIf="cargando" class="reportes-loading">
+    <span class="spinner"></span>
+    <span>Generando reporte con IA, por favor espera…</span>
+  </div>
+
+  <!-- Mensaje de error -->
+  <div *ngIf="error && !cargando" class="reportes-error">
+    {{ error }}
+  </div>
+
+  <!-- Lienzo del gráfico -->
+  <div class="reportes-grafico" [class.oculto]="cargando">
+    <canvas id="reportChart"></canvas>
+  </div>
+</div>

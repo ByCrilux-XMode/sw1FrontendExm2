@@ -1,6 +1,7 @@
 export const environment = {
   production: false,
-  apiUrl: 'https://sw1frontexm1-614166022463.southamerica-east1.run.app',
+  //apiUrl: 'http://localhost:8080',
+  apiUrl: 'https://sw1backendexm2-614166022463.southamerica-east1.run.app',
   firebase: {
     apiKey: "AIzaSyDYHYJOj6tJlxAr7krcaVBzUI6lJBCTKHw",
     authDomain: "diagramadorrealtime.firebaseapp.com",

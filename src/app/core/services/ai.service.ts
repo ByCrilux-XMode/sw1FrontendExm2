@@ -1,55 +1,29 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { Observable, throwError } from 'rxjs';
 import { tap, catchError } from 'rxjs/operators';
+import { environment } from '../../../environments/environment'; // Ajusta la ruta si es necesario
 
 @Injectable({ providedIn: 'root' })
 export class AiService {
     private http = inject(HttpClient);
-    // URL por defecto de Ollama con bypass para ngrok
-    private readonly OLLAMA_URL = 'https://jeffry-sorriest-benny.ngrok-free.dev/api/generate?ngrok-skip-browser-warning=true';
+
+    // Apuntamos a tu propio backend en Spring Boot
+    private readonly BACKEND_URL = `${environment.apiUrl}/api/ia/generar-diagrama`;
 
     enviarConsulta(prompt: string, esquemaActual: any): Observable<any> {
+        console.log("Enviando consulta al Backend para OpenRouter...");
 
-        const headers = new HttpHeaders({
-            'Content-Type': 'application/json'
-        });
+        // Mandamos los datos limpios al backend
+        const payload = {
+            instruccion: prompt,
+            esquema: JSON.stringify(esquemaActual)
+        };
 
-        const systemInstruction = `
-      Eres un arquitecto de software experto en GoJS.
-      Recibirás un esquema JSON de un diagrama de flujo y una instrucción del usuario.
-      Tu respuesta DEBE tener este formato exacto:
-      <texto>Tu comentario breve para el chat</texto>
-      <json>El objeto JSON completo y actualizado para el diagrama</json>
-      Solo puedes usar estas CATEGORÍAS exactas para los nodos:
-      1. "Initial": Es el círculo negro de inicio. (Propiedad 'text' opcional).
-      2. "Activity": Rectángulo para tareas. REQUIERE un array 'tasks': [{"nombre": "...", "tipo": "TEXTO"}].
-      3. "Conditional": Diamante de decisión. REQUIERE 'tipoValidacion': 'MANUAL' o 'SISTEMA'.
-      4. "Lane": El carril/contenedor. REQUIERE 'isGroup': true.
-      5. "Final": Círculo rojo de fin de proceso.
-      6. "Merge": Diamante de fusión de caminos.
-
-      Reglas:
-      1. El JSON debe ser un GraphLinksModel válido de GoJS.
-      2. No añadas explicaciones fuera de las etiquetas.
-      3. Si el usuario pide añadir un nodo, inventa una "key" única negativa (ej: -100).
-      4. Para el inicio usa SIEMPRE category: "Initial" (NO "start").
-      5. Si vas a meter un nodo dentro de un carril (Lane), añade la propiedad "group": "key_del_lane". 
-    `;
-
-        const fullPrompt = `Esquema actual: ${JSON.stringify(esquemaActual)}\n\nInstrucción: ${prompt}`;
-
-        console.log("Enviando consulta a la IA...", { prompt, model: 'gemma3:12b' });
-
-        return this.http.post<any>(this.OLLAMA_URL, {
-            model: 'gemma3:12b',
-            prompt: fullPrompt,
-            system: systemInstruction,
-            stream: false
-        }, { headers: headers }).pipe(
-            tap(response => console.log("Respuesta recibida de IA:", response)),
+        return this.http.post<any>(this.BACKEND_URL, payload).pipe(
+            tap(response => console.log("Respuesta recibida del Backend:", response)),
             catchError(error => {
-                console.error("Error al consultar la IA:", error);
+                console.error("Error al consultar el Backend:", error);
                 return throwError(() => error);
             })
         );
