@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule, KeyValuePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TramiteService } from '../../../../core/services/tramite.service';
@@ -21,6 +21,41 @@ export class GestionTramitesAdminComponent implements OnInit {
   isLoading = signal(true);
   error = signal<string | null>(null);
   isSaving = signal(false);
+
+  // ── Filtros y paginación (cliente) ──────────────────────────
+  filtroTexto = signal('');          // busca por cliente, email, política o id
+  filtroEstado = signal('');         // '' = todos
+  pagina = signal(1);
+  readonly TAMANO_PAGINA = 25;
+  readonly OPCIONES_PAGINA = [25, 50, 100];
+
+  /** Lista filtrada por texto + estado */
+  tramitesFiltrados = computed(() => {
+    const texto = this.filtroTexto().trim().toLowerCase();
+    const estado = this.filtroEstado();
+    return this.tramites().filter(t => {
+      if (estado && t.estadoActual !== estado) return false;
+      if (!texto) return true;
+      return (
+        (t.clienteNombre ?? '').toLowerCase().includes(texto) ||
+        (t.clienteEmail ?? '').toLowerCase().includes(texto) ||
+        (t.politicaNombre ?? '').toLowerCase().includes(texto) ||
+        (t.clienteId ?? '').toLowerCase().includes(texto) ||
+        (t.id ?? '').toLowerCase().includes(texto)
+      );
+    });
+  });
+
+  /** Total de páginas según el filtro actual */
+  totalPaginas = computed(() =>
+    Math.max(1, Math.ceil(this.tramitesFiltrados().length / this.TAMANO_PAGINA))
+  );
+
+  /** Solo los trámites de la página actual (lo único que se renderiza) */
+  tramitesPagina = computed(() => {
+    const inicio = (this.pagina() - 1) * this.TAMANO_PAGINA;
+    return this.tramitesFiltrados().slice(inicio, inicio + this.TAMANO_PAGINA);
+  });
 
   // Modal de edición
   tramiteSeleccionado: AdminTramite | null = null;
@@ -49,6 +84,23 @@ export class GestionTramitesAdminComponent implements OnInit {
         this.isLoading.set(false);
       }
     });
+  }
+
+  // ── Filtros / paginación ────────────────────────────────────
+  /** Al cambiar cualquier filtro volvemos a la primera página */
+  onFiltroChange(): void {
+    this.pagina.set(1);
+  }
+
+  limpiarFiltros(): void {
+    this.filtroTexto.set('');
+    this.filtroEstado.set('');
+    this.pagina.set(1);
+  }
+
+  irPagina(p: number): void {
+    const max = this.totalPaginas();
+    this.pagina.set(Math.min(Math.max(1, p), max));
   }
 
   abrirModal(tramite: AdminTramite): void {
