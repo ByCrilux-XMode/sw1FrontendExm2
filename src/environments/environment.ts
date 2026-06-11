@@ -1,5 +1,5 @@
 export const environment = {
-  production: false,
+  production: true,
   //apiUrl: 'http://localhost:8080',
   apiUrl: 'https://sw1backendexm2-614166022463.southamerica-east1.run.app',
   firebase: {
