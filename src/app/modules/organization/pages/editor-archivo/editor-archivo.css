@@ -5,21 +5,46 @@
 }
 
 .editor-container {
+    flex: 1;
+    /* IMPORTANTE: Para que el scroll abarque toda la pantalla */
     overflow-y: auto;
+    background-color: #f8f9fa;
+    /* Fondo gris de la mesa */
+    padding: 40px 20px;
+    /* Eliminamos el flexbox aquí para no asfixiar la hoja */
 }
 
 .editor-paper {
-    border-radius: 4px;
-    border: 1px solid #e0e0e0;
+    background-color: #ffffff;
+    /* Hoja blanca */
+    width: 210mm;
+    max-width: 100%;
+    min-height: 297mm;
+
+    /* LA MAGIA: Obliga a la caja blanca a envolver todo el texto sin importar qué tan largo sea */
+    height: max-content;
+
+    /* Centra la hoja horizontalmente y deja espacio al final para hacer scroll */
+    margin: 0 auto 40px auto;
+
+    padding: 2.5cm;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    box-sizing: border-box;
+    border-radius: 2px;
 }
 
 /* TipTap ProseMirror Styles */
 :host ::ng-deep .ProseMirror {
     outline: none !important;
-    min-height: 700px;
+    background: transparent;
+    height: auto;
+    min-height: 100%;
+
+    /* Asegura que el contenedor de texto empuje los márgenes de la hoja hacia abajo */
+    display: block;
 }
 
-:host ::ng-deep .ProseMirror > * + * {
+:host ::ng-deep .ProseMirror>*+* {
     margin-top: 0.75em;
 }
 
@@ -38,6 +63,115 @@
     padding-left: 1rem;
     border-left: 3px solid #dee2e6;
     color: #6c757d;
+}
+
+/* ===== Tablas ===== */
+:host ::ng-deep .ProseMirror table {
+    border-collapse: collapse;
+    width: 100%;
+    table-layout: fixed;
+    margin: 1em 0;
+    overflow: hidden;
+}
+
+:host ::ng-deep .ProseMirror table td,
+:host ::ng-deep .ProseMirror table th {
+    border: 1px solid #ddd;
+    padding: 8px 12px;
+    vertical-align: top;
+    box-sizing: border-box;
+    position: relative;
+    min-width: 60px;
+}
+
+:host ::ng-deep .ProseMirror table th {
+    background-color: #f8f9fa;
+    font-weight: 600;
+    text-align: left;
+}
+
+/* Celda seleccionada con el cursor de tabla */
+:host ::ng-deep .ProseMirror .selectedCell::after {
+    content: '';
+    background: rgba(13, 110, 253, 0.12);
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    pointer-events: none;
+    position: absolute;
+    z-index: 2;
+}
+
+/* Handle de redimensionado de columna */
+:host ::ng-deep .ProseMirror .column-resize-handle {
+    background-color: #0d6efd;
+    bottom: -2px;
+    pointer-events: none;
+    position: absolute;
+    right: -2px;
+    top: 0;
+    width: 4px;
+}
+
+/* ===== Imágenes ===== */
+:host ::ng-deep .ProseMirror img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 4px;
+    display: block;
+    margin: 0.5em 0;
+}
+
+:host ::ng-deep .ProseMirror img.ProseMirror-selectednode {
+    outline: 3px solid #0d6efd;
+    border-radius: 4px;
+}
+
+/* ===== Awareness — Avatar Stack ===== */
+
+.avatar-stack {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+}
+
+.avatar-circle {
+    width: 35px;
+    height: 35px;
+    border-radius: 50%;
+
+    /* Centrar la inicial */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    /* Tipografía */
+    color: #fff;
+    font-weight: 700;
+    font-size: 14px;
+    text-transform: uppercase;
+    user-select: none;
+
+    /* Separación tipo Google Docs: se superponen con borde blanco */
+    border: 2px solid #ffffff;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+
+    /* Transición suave cuando entran/salen usuarios */
+    transition: transform 0.15s ease;
+    cursor: default;
+}
+
+/* A partir del segundo avatar se superpone al anterior */
+.avatar-circle:not(:first-child) {
+    margin-left: -10px;
+}
+
+/* Elevación al hacer hover para leer el tooltip más cómodamente */
+.avatar-circle:hover {
+    transform: translateY(-2px);
+    z-index: 10;
+    position: relative;
 }
 
 /* Collaboration Cursors */

@@ -49,11 +49,11 @@
                       <i class="bi bi-eye"></i> Ver
                     </a>
                     <button *ngIf="tienePermiso(res.key, 'descargar')" class="btn btn-sm btn-success text-white"
-                      (click)="descargarDocumento(res.value, res.key)">
+                      (click)="descargarDocumentoTransformado(res.value, res.key)">
                       <i class="bi bi-download"></i> Descargar
                     </button>
                     <button *ngIf="esArchivoEditable(res.value) && tienePermiso(res.key, 'editar')"
-                      class="btn btn-sm btn-warning ms-1" (click)="abrirEditor(tramite?.id, res.value)"
+                      class="btn btn-sm btn-warning ms-1" (click)="abrirEditor(tramite.id, res.value, res.key)"
                       title="Editar documento en tiempo real">
                       <i class="bi bi-pencil-square"></i> Editar Colaborativo
                     </button>
@@ -78,6 +78,169 @@
       </div>
     </div>
   </div>
+
+  <!-- ─── Historial de versiones del documento ─────────────────────────────── -->
+  <div class="row mt-4" *ngIf="tramite.historialVersiones && tramite.historialVersiones.length > 0">
+    <div class="col-12">
+      <div class="card shadow-sm border-0">
+
+        <!-- Cabecera con toggle -->
+        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+          <span class="fw-bold">
+            <i class="bi bi-clock-history text-secondary me-1"></i>
+            Historial de Versiones del Documento
+            <span class="badge bg-secondary ms-2">{{ tramite.historialVersiones.length }}</span>
+          </span>
+          <button class="btn btn-sm btn-outline-secondary" (click)="toggleHistorial()">
+            <i [class]="mostrarHistorial ? 'bi bi-chevron-up' : 'bi bi-chevron-down'"></i>
+            {{ mostrarHistorial ? 'Ocultar' : 'Ver historial' }}
+          </button>
+        </div>
+
+        <div *ngIf="mostrarHistorial">
+
+          <!-- Mensaje de resultado de la restauración -->
+          <div *ngIf="mensajeRestore" class="alert m-3 mb-0"
+               [class.alert-success]="mensajeRestore.tipo === 'success'"
+               [class.alert-danger]="mensajeRestore.tipo === 'danger'">
+            <i [class]="mensajeRestore.tipo === 'success' ? 'bi bi-check-circle-fill me-2' : 'bi bi-exclamation-triangle-fill me-2'"></i>
+            {{ mensajeRestore.texto }}
+          </div>
+
+          <!-- Panel de confirmación de restauración -->
+          <div *ngIf="versionSeleccionada" class="restore-confirm-panel mx-3 mt-3">
+            <div class="d-flex align-items-start gap-3">
+              <i class="bi bi-arrow-counterclockwise fs-4 text-warning mt-1"></i>
+              <div class="flex-grow-1">
+                <p class="mb-1 fw-semibold">¿Restaurar esta versión?</p>
+                <p class="mb-2 text-muted small">
+                  Se restaurará <strong>{{ versionSeleccionada.nombreVersion }}</strong>
+                  guardada por <strong>{{ versionSeleccionada.guardadoPor }}</strong>.
+                  La versión activa actual pasará al historial y no se perderá.
+                </p>
+                <div class="d-flex gap-2">
+                  <button class="btn btn-warning btn-sm" [disabled]="restaurando" (click)="confirmarRestore()">
+                    <span *ngIf="restaurando" class="spinner-border spinner-border-sm me-1"></span>
+                    <i *ngIf="!restaurando" class="bi bi-check-lg me-1"></i>
+                    {{ restaurando ? 'Restaurando…' : 'Sí, restaurar' }}
+                  </button>
+                  <button class="btn btn-outline-secondary btn-sm" [disabled]="restaurando" (click)="cancelarRestore()">
+                    Cancelar
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Versión activa actual -->
+          <div class="version-activa mx-3 mt-3" *ngIf="tramite.documentoActivoKey">
+            <div class="d-flex align-items-center gap-2">
+              <span class="badge bg-success">Activa</span>
+              <span class="text-muted small text-truncate">{{ tramite.documentoActivoKey }}</span>
+            </div>
+          </div>
+
+          <!-- Tabla de versiones anteriores -->
+          <div class="table-responsive mt-2">
+            <table class="table table-hover align-middle mb-0 version-table">
+              <thead class="table-light">
+                <tr>
+                  <th class="ps-3">Archivo / Tarea</th>
+                  <th>Tipo de cambio</th>
+                  <th>Guardado por</th>
+                  <th>Fecha</th>
+                  <th class="text-end pe-3">Acción</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let v of historialOrdenado; let i = index"
+                    [class.version-row-selected]="versionSeleccionadaIdx === i">
+
+                  <!-- Archivo / Tarea -->
+                  <td class="ps-3">
+                    <div class="d-flex align-items-center gap-2">
+                      <!-- Ícono por extensión -->
+                      <ng-container [ngSwitch]="extVersion(v)">
+                        <i *ngSwitchCase="'docx'" class="bi bi-file-earmark-word text-primary fs-5"></i>
+                        <i *ngSwitchCase="'doc'"  class="bi bi-file-earmark-word text-primary fs-5"></i>
+                        <i *ngSwitchCase="'xlsx'" class="bi bi-file-earmark-excel text-success fs-5"></i>
+                        <i *ngSwitchCase="'html'" class="bi bi-file-earmark-code text-warning fs-5"></i>
+                        <i *ngSwitchCase="'txt'"  class="bi bi-file-earmark-text text-secondary fs-5"></i>
+                        <i *ngSwitchDefault         class="bi bi-file-earmark text-secondary fs-5"></i>
+                      </ng-container>
+                      <div>
+                        <!-- Nombre de tarea (si hay respKey) -->
+                        <div class="fw-semibold small">
+                          {{ v.respKey ? formatearNombreTarea(v.respKey) : 'Archivo sin identificar' }}
+                        </div>
+                        <!-- Extensión como badge -->
+                        <span class="badge rounded-pill text-uppercase"
+                              [ngClass]="{
+                                'bg-primary':   extVersion(v) === 'docx' || extVersion(v) === 'doc',
+                                'bg-success':   extVersion(v) === 'xlsx',
+                                'bg-warning text-dark': extVersion(v) === 'html',
+                                'bg-secondary': extVersion(v) === 'txt' || !extVersion(v)
+                              }">
+                          .{{ extVersion(v) || '?' }}
+                        </span>
+                      </div>
+                    </div>
+                  </td>
+
+                  <!-- Tipo de cambio -->
+                  <td>
+                    <span *ngIf="tipoVersion(v) === 'guardado'"
+                          class="badge bg-info text-dark">
+                      <i class="bi bi-floppy me-1"></i>Guardado
+                    </span>
+                    <span *ngIf="tipoVersion(v) === 'pre-restore'"
+                          class="badge bg-warning text-dark">
+                      <i class="bi bi-arrow-counterclockwise me-1"></i>Pre-restauración
+                    </span>
+                    <div class="text-muted small mt-1">{{ v.nombreVersion }}</div>
+                  </td>
+
+                  <!-- Guardado por -->
+                  <td>
+                    <i class="bi bi-person-circle text-secondary me-1"></i>
+                    <span class="small">{{ v.guardadoPor }}</span>
+                  </td>
+
+                  <!-- Fecha -->
+                  <td class="text-muted small text-nowrap">
+                    {{ v.fechaGuardado | date:'dd/MM/yyyy' }}<br>
+                    <span class="text-secondary">{{ v.fechaGuardado | date:'HH:mm:ss' }}</span>
+                  </td>
+
+                  <!-- Acciones -->
+                  <td class="text-end pe-3">
+                    <div class="d-flex justify-content-end gap-2">
+                      <button class="btn btn-sm btn-outline-secondary"
+                              [disabled]="previsualizandoKey === v.s3Key"
+                              (click)="previsualizarVersion(v)"
+                              title="Previsualizar esta versión">
+                        <span *ngIf="previsualizandoKey === v.s3Key"
+                              class="spinner-border spinner-border-sm"></span>
+                        <i *ngIf="previsualizandoKey !== v.s3Key" class="bi bi-eye"></i>
+                      </button>
+                      <button class="btn btn-sm btn-outline-warning"
+                              [disabled]="restaurando || versionSeleccionadaIdx === i"
+                              (click)="pedirConfirmacion(v, i)"
+                              title="Restaurar esta versión como activa">
+                        <i class="bi bi-arrow-counterclockwise me-1"></i>Restaurar
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
 </div>
 
 <div class="text-center mt-5" *ngIf="loading">

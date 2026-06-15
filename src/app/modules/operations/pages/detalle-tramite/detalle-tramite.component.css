@@ -9,3 +9,37 @@
 .table-hover tbody tr:hover {
   background-color: rgba(255, 255, 255, 0.05);
 }
+
+/* ── Historial de versiones ─────────────────────────────────────────────── */
+.restore-confirm-panel {
+  background: #fff8e1;
+  border: 1px solid #ffe082;
+  border-radius: 8px;
+  padding: 1rem 1.25rem;
+}
+
+.version-activa {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 6px;
+  padding: 0.5rem 0.75rem;
+}
+
+/* Resaltar SOLO la fila seleccionada para restaurar (por índice, no por s3Key) */
+.version-row-selected {
+  background-color: #fff9e6 !important;
+  outline: 2px solid #ffe082;
+  outline-offset: -2px;
+}
+
+/* Tabla de versiones: columnas con tamaño controlado */
+.version-table th:nth-child(1) { width: 28%; }
+.version-table th:nth-child(2) { width: 22%; }
+.version-table th:nth-child(3) { width: 16%; }
+.version-table th:nth-child(4) { width: 16%; }
+.version-table th:nth-child(5) { width: 18%; }
+
+/* Animación suave al expandir/colapsar el historial */
+.card-body {
+  transition: max-height 0.3s ease;
+}

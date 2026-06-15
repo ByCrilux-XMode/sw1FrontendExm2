@@ -49,4 +49,43 @@ export class DocumentoS3Service {
             { params: { key: s3Key } }
         );
     }
+
+    /**
+     * Consolida el contenido del editor: el backend sube una nueva versión a S3,
+     * guarda la clave anterior en el historial de MongoDB y retorna la nueva clave activa.
+     *
+     * POST /api/tramites/{tramiteId}/documentos/consolidar
+     */
+    /**
+     * Restaura una versión del historial como la versión activa del documento.
+     * El backend descarga el contenido antiguo de S3, lo re-sube con clave nueva
+     * y actualiza el historial en MongoDB.
+     *
+     * POST /api/tramites/{tramiteId}/documentos/restaurar
+     */
+    restaurarVersion(
+        tramiteId: string,
+        payload: { s3KeyARestaurar: string; nombreUsuario: string; respKey?: string }
+    ): Observable<{ nuevaKey: string }> {
+        return this.http.post<{ nuevaKey: string }>(
+            `${this.apiUrl}/${tramiteId}/documentos/restaurar`,
+            payload
+        );
+    }
+
+    consolidarDocumento(
+        tramiteId: string,
+        payload: {
+            s3KeyAnterior: string;
+            contenido: string;
+            esDocxOriginal: boolean;
+            nombreUsuario: string;
+            respKey: string;
+        }
+    ): Observable<{ nuevaKey: string }> {
+        return this.http.post<{ nuevaKey: string }>(
+            `${this.apiUrl}/${tramiteId}/documentos/consolidar`,
+            payload
+        );
+    }
 }

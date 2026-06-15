@@ -12,26 +12,28 @@
   </div>
 
   <!-- Filtros -->
-  <div *ngIf="!isLoading() && !error()" class="row g-2 mb-3">
+  <div *ngIf="!error()" class="row g-2 mb-3">
     <div class="col-md-6">
       <div class="input-group input-group-sm">
         <span class="input-group-text"><i class="bi bi-search"></i></span>
         <input type="text" class="form-control"
-          placeholder="Buscar por cliente, email, política o ID..."
+          placeholder="Buscar por ID de cliente o ID de trámite..."
           [ngModel]="filtroTexto()"
-          (ngModelChange)="filtroTexto.set($event); onFiltroChange()">
+          (ngModelChange)="filtroTexto.set($event); onFiltroChange()"
+          [disabled]="isLoading()">
       </div>
     </div>
     <div class="col-md-3">
       <select class="form-select form-select-sm"
         [ngModel]="filtroEstado()"
-        (ngModelChange)="filtroEstado.set($event); onFiltroChange()">
+        (ngModelChange)="filtroEstado.set($event); onFiltroChange()"
+        [disabled]="isLoading()">
         <option value="">Todos los estados</option>
         <option *ngFor="let e of ESTADOS" [value]="e">{{ e }}</option>
       </select>
     </div>
     <div class="col-md-3 d-flex gap-2">
-      <button class="btn btn-outline-secondary btn-sm flex-grow-1" (click)="limpiarFiltros()">
+      <button class="btn btn-outline-secondary btn-sm flex-grow-1" (click)="limpiarFiltros()" [disabled]="isLoading()">
         <i class="bi bi-x-circle"></i> Limpiar
       </button>
     </div>
@@ -95,7 +97,7 @@
               </td>
             </tr>
 
-            <tr *ngIf="tramitesFiltrados().length === 0">
+            <tr *ngIf="tramitesPagina().length === 0">
               <td colspan="6" class="text-center py-4 text-muted">No hay trámites que coincidan con el filtro.</td>
             </tr>
           </tbody>
@@ -104,24 +106,23 @@
     </div>
 
     <!-- Paginación -->
-    <div *ngIf="tramitesFiltrados().length > 0"
-      class="card-footer d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <div class="card-footer d-flex justify-content-between align-items-center flex-wrap gap-2">
       <small class="text-muted">
-        Mostrando {{ tramitesPagina().length }} de {{ tramitesFiltrados().length }} trámite(s)
-        — Página {{ pagina() }} de {{ totalPaginas() }}
+        Mostrando {{ tramitesPagina().length }} de {{ totalElementos() }} trámite(s)
+        — Página {{ paginaDisplay() }} de {{ totalPaginas() }}
       </small>
       <div class="btn-group btn-group-sm">
-        <button class="btn btn-outline-secondary" (click)="irPagina(1)" [disabled]="pagina() === 1">
+        <button class="btn btn-outline-secondary" (click)="irPagina(0)" [disabled]="pagina() === 0">
           <i class="bi bi-chevron-double-left"></i>
         </button>
-        <button class="btn btn-outline-secondary" (click)="irPagina(pagina() - 1)" [disabled]="pagina() === 1">
+        <button class="btn btn-outline-secondary" (click)="irPagina(pagina() - 1)" [disabled]="pagina() === 0">
           <i class="bi bi-chevron-left"></i>
         </button>
-        <button class="btn btn-outline-secondary disabled">{{ pagina() }} / {{ totalPaginas() }}</button>
-        <button class="btn btn-outline-secondary" (click)="irPagina(pagina() + 1)" [disabled]="pagina() === totalPaginas()">
+        <button class="btn btn-outline-secondary disabled">{{ paginaDisplay() }} / {{ totalPaginas() }}</button>
+        <button class="btn btn-outline-secondary" (click)="irPagina(pagina() + 1)" [disabled]="pagina() >= totalPaginas() - 1">
           <i class="bi bi-chevron-right"></i>
         </button>
-        <button class="btn btn-outline-secondary" (click)="irPagina(totalPaginas())" [disabled]="pagina() === totalPaginas()">
+        <button class="btn btn-outline-secondary" (click)="irPagina(totalPaginas() - 1)" [disabled]="pagina() >= totalPaginas() - 1">
           <i class="bi bi-chevron-double-right"></i>
         </button>
       </div>

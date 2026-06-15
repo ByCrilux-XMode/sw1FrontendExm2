@@ -1,8 +1,8 @@
-import { Component, OnInit, inject, signal, computed } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, signal, computed } from '@angular/core';
 import { CommonModule, KeyValuePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TramiteService } from '../../../../core/services/tramite.service';
-import { AdminTramite, AdminUpdateTramitePayload } from '../../../../data/interfaces/tramite.interface';
+import { AdminTramite, AdminUpdateTramitePayload, PagedAdminTramite } from '../../../../data/interfaces/tramite.interface';
 
 const ACCIONES_DISPONIBLES = ['abrir', 'descargar', 'editar'] as const;
 type Accion = typeof ACCIONES_DISPONIBLES[number];
@@ -14,48 +14,28 @@ type Accion = typeof ACCIONES_DISPONIBLES[number];
   templateUrl: './gestion-tramites-admin.component.html',
   styleUrl: './gestion-tramites-admin.component.css'
 })
-export class GestionTramitesAdminComponent implements OnInit {
+export class GestionTramitesAdminComponent implements OnInit, OnDestroy {
   private tramiteService = inject(TramiteService);
 
-  tramites = signal<AdminTramite[]>([]);
+  // ── Estado de la página actual ──────────────────────────────────────────────
+  paginaDatos = signal<PagedAdminTramite | null>(null);
   isLoading = signal(true);
   error = signal<string | null>(null);
   isSaving = signal(false);
 
-  // ── Filtros y paginación (cliente) ──────────────────────────
-  filtroTexto = signal('');          // busca por cliente, email, política o id
-  filtroEstado = signal('');         // '' = todos
-  pagina = signal(1);
-  readonly TAMANO_PAGINA = 25;
-  readonly OPCIONES_PAGINA = [25, 50, 100];
+  // ── Filtros y paginación (servidor) ─────────────────────────────────────────
+  filtroTexto = signal('');    // busca por clienteId o tramiteId en el servidor
+  filtroEstado = signal('');   // '' = todos
+  pagina = signal(0);          // 0-based (API de Spring)
+  readonly TAMANO_PAGINA = 20;
 
-  /** Lista filtrada por texto + estado */
-  tramitesFiltrados = computed(() => {
-    const texto = this.filtroTexto().trim().toLowerCase();
-    const estado = this.filtroEstado();
-    return this.tramites().filter(t => {
-      if (estado && t.estadoActual !== estado) return false;
-      if (!texto) return true;
-      return (
-        (t.clienteNombre ?? '').toLowerCase().includes(texto) ||
-        (t.clienteEmail ?? '').toLowerCase().includes(texto) ||
-        (t.politicaNombre ?? '').toLowerCase().includes(texto) ||
-        (t.clienteId ?? '').toLowerCase().includes(texto) ||
-        (t.id ?? '').toLowerCase().includes(texto)
-      );
-    });
-  });
+  readonly OPCIONES_PAGINA = [20, 50, 100];
 
-  /** Total de páginas según el filtro actual */
-  totalPaginas = computed(() =>
-    Math.max(1, Math.ceil(this.tramitesFiltrados().length / this.TAMANO_PAGINA))
-  );
-
-  /** Solo los trámites de la página actual (lo único que se renderiza) */
-  tramitesPagina = computed(() => {
-    const inicio = (this.pagina() - 1) * this.TAMANO_PAGINA;
-    return this.tramitesFiltrados().slice(inicio, inicio + this.TAMANO_PAGINA);
-  });
+  // ── Datos derivados de la respuesta del servidor ─────────────────────────────
+  tramitesPagina = computed(() => this.paginaDatos()?.content ?? []);
+  totalPaginas   = computed(() => this.paginaDatos()?.totalPages ?? 1);
+  totalElementos = computed(() => this.paginaDatos()?.totalElements ?? 0);
+  paginaDisplay  = computed(() => this.pagina() + 1); // 1-based para mostrar
 
   // Modal de edición
   tramiteSeleccionado: AdminTramite | null = null;
@@ -66,16 +46,27 @@ export class GestionTramitesAdminComponent implements OnInit {
   readonly ACCIONES = ACCIONES_DISPONIBLES;
   readonly ESTADOS = ['INICIADO', 'EN_PROCESO', 'FINALIZADO'];
 
+  private searchTimeout: any;
+
   ngOnInit(): void {
     this.cargarTramites();
+  }
+
+  ngOnDestroy(): void {
+    clearTimeout(this.searchTimeout);
   }
 
   cargarTramites(): void {
     this.isLoading.set(true);
     this.error.set(null);
-    this.tramiteService.obtenerTodosLosTramitesAdmin().subscribe({
+    this.tramiteService.obtenerTodosLosTramitesAdmin(
+      this.pagina(),
+      this.TAMANO_PAGINA,
+      this.filtroEstado(),
+      this.filtroTexto().trim()
+    ).subscribe({
       next: (data) => {
-        this.tramites.set(data);
+        this.paginaDatos.set(data);
         this.isLoading.set(false);
       },
       error: (err) => {
@@ -86,27 +77,36 @@ export class GestionTramitesAdminComponent implements OnInit {
     });
   }
 
-  // ── Filtros / paginación ────────────────────────────────────
-  /** Al cambiar cualquier filtro volvemos a la primera página */
+  // ── Filtros / paginación ────────────────────────────────────────────────────
+
+  /** Al cambiar cualquier filtro: volvemos a página 0 y esperamos 350ms antes de consultar */
   onFiltroChange(): void {
-    this.pagina.set(1);
+    this.pagina.set(0);
+    clearTimeout(this.searchTimeout);
+    this.searchTimeout = setTimeout(() => this.cargarTramites(), 350);
   }
 
   limpiarFiltros(): void {
     this.filtroTexto.set('');
     this.filtroEstado.set('');
-    this.pagina.set(1);
+    this.pagina.set(0);
+    this.cargarTramites();
   }
 
   irPagina(p: number): void {
-    const max = this.totalPaginas();
-    this.pagina.set(Math.min(Math.max(1, p), max));
+    const max = this.totalPaginas() - 1;
+    const nueva = Math.min(Math.max(0, p), max);
+    if (nueva !== this.pagina()) {
+      this.pagina.set(nueva);
+      this.cargarTramites();
+    }
   }
+
+  // ── Modal ───────────────────────────────────────────────────────────────────
 
   abrirModal(tramite: AdminTramite): void {
     this.tramiteSeleccionado = tramite;
     this.editEstadoActual = tramite.estadoActual;
-    // Deep copy para no mutar el original antes de guardar
     this.editRespuestas = tramite.respuestas ? { ...tramite.respuestas } : {};
     this.editAccionesPermitidas = tramite.accionesPermitidas
       ? Object.fromEntries(
@@ -119,12 +119,10 @@ export class GestionTramitesAdminComponent implements OnInit {
     this.tramiteSeleccionado = null;
   }
 
-  /** Verifica si una acción está en la lista de permisos de una tarea */
   tieneAccion(tareaKey: string, accion: string): boolean {
     return (this.editAccionesPermitidas[tareaKey] ?? []).includes(accion);
   }
 
-  /** Toggle una acción dentro de los permisos de una tarea */
   toggleAccion(tareaKey: string, accion: string): void {
     const permisos = this.editAccionesPermitidas[tareaKey] ?? [];
     const idx = permisos.indexOf(accion);
@@ -147,10 +145,14 @@ export class GestionTramitesAdminComponent implements OnInit {
 
     this.tramiteService.actualizarTramiteAdmin(this.tramiteSeleccionado.id, payload).subscribe({
       next: (actualizado) => {
-        // Reemplazar en la lista local
-        this.tramites.update(lista =>
-          lista.map(t => t.id === actualizado.id ? actualizado : t)
-        );
+        // Actualizar el ítem dentro de la página actual sin recargar todo
+        this.paginaDatos.update(p => {
+          if (!p) return p;
+          return {
+            ...p,
+            content: p.content.map(t => t.id === actualizado.id ? actualizado : t)
+          };
+        });
         this.isSaving.set(false);
         this.cerrarModal();
       },
@@ -161,7 +163,8 @@ export class GestionTramitesAdminComponent implements OnInit {
     });
   }
 
-  /** Formatea la clave de tarea para mostrarla legible */
+  // ── Helpers de template ─────────────────────────────────────────────────────
+
   formatearClave(key: string): string {
     return key.replace(/n_.*?_t_/, '').replace(/_/g, ' ');
   }

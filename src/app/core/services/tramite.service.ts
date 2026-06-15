@@ -1,8 +1,8 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { TramiteResponseDTO, RegistrarTramiteRequestDTO, AdminTramite, AdminUpdateTramitePayload } from '../../data/interfaces/tramite.interface';
+import { TramiteResponseDTO, RegistrarTramiteRequestDTO, AdminTramite, AdminUpdateTramitePayload, PagedAdminTramite } from '../../data/interfaces/tramite.interface';
 
 @Injectable({
     providedIn: 'root'
@@ -33,8 +33,18 @@ export class TramiteService {
 
     // ── Admin ─────────────────────────────────────────────────────────────────
 
-    obtenerTodosLosTramitesAdmin(): Observable<AdminTramite[]> {
-        return this.http.get<AdminTramite[]>(`${this.apiUrl}/admin`);
+    obtenerTodosLosTramitesAdmin(
+        page = 0,
+        size = 20,
+        estado = '',
+        busqueda = ''
+    ): Observable<PagedAdminTramite> {
+        const params = new HttpParams()
+            .set('page', page.toString())
+            .set('size', size.toString())
+            .set('estado', estado)
+            .set('busqueda', busqueda);
+        return this.http.get<PagedAdminTramite>(`${this.apiUrl}/admin`, { params });
     }
 
     actualizarTramiteAdmin(id: string, datos: AdminUpdateTramitePayload): Observable<AdminTramite> {

@@ -1,165 +1,169 @@
 <div class="ejecucion-container">
-  <!-- COLUMNA IZQUIERDA: DIAGRAMA -->
-  <div class="diagram-section">
-    <h3>Estado del Trámite</h3>
-    <p *ngIf="tramite?.estadoActual === 'FINALIZADO'" class="finalizado-text">
-      Este trámite ha finalizado correctamente.
-    </p>
-    <gojs-diagram
-      [initDiagram]="initDiagram"
-      [nodeDataArray]="diagramNodeData"
-      [linkDataArray]="diagramLinkData"
-      [divClassName]="diagramDivClassName">
-    </gojs-diagram>
-  </div>
 
-  <!-- COLUMNA DERECHA: TAREAS ACTIVAS -->
-  <div class="tasks-section" *ngIf="tramite?.estadoActual !== 'FINALIZADO'">
-    <h2>Bandeja de Tareas Activas</h2>
-    
-    <div *ngIf="nodosActivos.length === 0" class="no-tasks">
-      Cargando tareas o esperando asignación...
-    </div>
+  <!-- SECCIÓN ÚNICA: TAREAS ACTIVAS -->
+  <div class="tasks-wrapper">
+    <div class="tasks-section" *ngIf="tramite?.estadoActual !== 'FINALIZADO'">
 
-    <!-- Itera sobre los nodos (para soportar ForkJoin) -->
-    <div *ngFor="let nodo of nodosActivos" class="task-card">
-      <div class="task-header">
-        <span class="category-badge">{{ nodo.category }}</span>
-        <h3>{{ nodo.text || 'Sin Título' }}</h3>
+      <div class="section-header">
+        <h2><i class="bi bi-list-task"></i> Bandeja de Tareas</h2>
+        <span class="status-indicator">En Proceso</span>
       </div>
 
-      <!-- Tareas tipo ACTIVITY -->
-      <div *ngIf="nodo.category === 'Activity' || nodo.category === undefined" class="task-body">
+      <!-- Estado Vacío -->
+      <div *ngIf="nodosActivos.length === 0" class="empty-state">
+        <div class="spinner-border text-muted" role="status"></div>
+        <p>Cargando tareas o esperando asignación...</p>
+      </div>
 
-        <!-- ===== SMART FORM FILLING (Rellenado inteligente con IA) ===== -->
-        <div class="smart-fill-box mb-3 p-2 border rounded bg-light">
-          <label class="fw-bold d-block mb-1">
-            <i class="bi bi-magic"></i> Rellenado inteligente con IA
-          </label>
-          <small class="text-muted d-block mb-2">
-            Sube una foto del documento y la IA intentará completar los campos por ti.
-          </small>
+      <!-- Iteración de Nodos -->
+      <div *ngFor="let nodo of nodosActivos" class="task-card">
 
-          <div class="d-flex align-items-center gap-2">
-            <input type="file" accept="image/*" class="form-control form-control-sm"
-                   #iaFileInput
-                   (change)="onFileSelectedIA($event, nodo)"
-                   [disabled]="cargandoIA">
-            <button class="btn btn-sm btn-outline-primary text-nowrap"
-                    type="button"
-                    (click)="iaFileInput.click()"
-                    [disabled]="cargandoIA">
-              <i class="bi bi-stars"></i> Rellenar con IA
-            </button>
+        <!-- Cabecera de la Tarea -->
+        <div class="task-header">
+          <div class="task-meta">
+            <span class="category-badge" [ngClass]="'badge-' + (nodo.category || 'activity')">
+              {{ nodo.category || 'Activity' }}
+            </span>
+            <h3>{{ nodo.text || 'Sin Título' }}</h3>
           </div>
+        </div>
 
-          <!-- Estado de carga -->
-          <div *ngIf="cargandoIA" class="text-info mt-2">
-            <small>
-              <span class="spinner-border spinner-border-sm"></span>
-              Analizando documento con IA...
+        <!-- CUERPO: ACTIVITY (Formulario) -->
+        <div *ngIf="nodo.category === 'Activity' || nodo.category === undefined" class="task-body">
+
+          <!-- ===== SMART FORM FILLING (IA) ===== -->
+          <div class="smart-fill-box">
+            <label class="smart-label">
+              <i class="bi bi-stars"></i> Rellenado Inteligente con IA
+            </label>
+            <small class="text-muted d-block mb-3">
+              Sube una foto del documento y la IA intentará completar los campos por ti.
             </small>
+
+            <div class="upload-actions">
+              <input type="file" accept="image/*" class="hidden-input" #iaFileInput
+                (change)="onFileSelectedIA($event, nodo)" [disabled]="cargandoIA">
+              <button class="btn btn-ai" type="button" (click)="iaFileInput.click()" [disabled]="cargandoIA">
+                <i class="bi bi-camera-fill"></i>
+                <span *ngIf="!cargandoIA">Escanear Documento</span>
+                <span *ngIf="cargandoIA">Analizando...</span>
+              </button>
+            </div>
+
+            <!-- Mensaje de error -->
+            <div *ngIf="errorIA" class="alert alert-warning py-2 px-3 mt-2 mb-0">
+              <small><i class="bi bi-exclamation-circle"></i> {{ errorIA }}</small>
+            </div>
           </div>
 
-          <!-- Mensaje de error robusto -->
-          <div *ngIf="errorIA" class="alert alert-warning py-2 px-3 mt-2 mb-0">
-            <small>{{ errorIA }}</small>
+          <!-- Panel de revisión IA -->
+          <div *ngIf="mostrarPanelSugerencias && datosSugeridos" class="suggestions-panel fade-in">
+            <div class="suggestions-header">
+              <i class="bi bi-robot"></i> Sugerencias de la IA
+            </div>
+            <ul class="suggestions-list">
+              <li *ngFor="let campo of getSugerenciasKeys()">
+                <span class="sug-key">{{ campo }}:</span>
+                <span class="sug-val">
+                  {{ datosSugeridos[campo] !== null && datosSugeridos[campo] !== undefined ? datosSugeridos[campo] :
+                  '(no encontrado)' }}
+                </span>
+              </li>
+            </ul>
+            <div class="suggestions-actions">
+              <button class="btn btn-success" (click)="aceptarSugerencias()">
+                <i class="bi bi-check-lg"></i> Aceptar Todo
+              </button>
+              <button class="btn btn-outline-secondary" (click)="editarSugerencias()">
+                <i class="bi bi-pencil"></i> Editar Manualmente
+              </button>
+            </div>
           </div>
-        </div>
+          <!-- ===== FIN SMART FORM ===== -->
 
-        <!-- Panel de revisión: ACEPTAR o EDITAR -->
-        <div *ngIf="mostrarPanelSugerencias && datosSugeridos" class="alert alert-info mt-2">
-          <h6 class="mb-2"><i class="bi bi-robot"></i> La IA ha extraído estos datos:</h6>
-          <ul class="mb-2 ps-3">
-            <li *ngFor="let campo of getSugerenciasKeys()">
-              <strong>{{ campo }}:</strong>
-              {{ datosSugeridos[campo] !== null && datosSugeridos[campo] !== undefined ? datosSugeridos[campo] : '(no encontrado)' }}
-            </li>
-          </ul>
-          <p class="mb-2"><small>¿Deseas aplicarlos al formulario?</small></p>
-          <div class="d-flex gap-2">
-            <button class="btn btn-sm btn-success" (click)="aceptarSugerencias()">
-              <i class="bi bi-check-lg"></i> Aceptar
-            </button>
-            <button class="btn btn-sm btn-outline-secondary" (click)="editarSugerencias()">
-              <i class="bi bi-pencil"></i> Editar manualmente
-            </button>
-          </div>
-        </div>
-        <!-- ===== FIN SMART FORM FILLING ===== -->
+          <p class="form-intro">Por favor completa los siguientes campos:</p>
 
-        <p>Por favor completa los siguientes campos:</p>
+          <div *ngFor="let task of nodo.tasks" class="dynamic-field">
+            <label>{{ task.nombre }} <small class="text-muted">({{task.tipo}})</small></label>
 
-        <div *ngFor="let task of nodo.tasks" class="dynamic-field">
-          <label>{{ task.nombre }} ({{task.tipo}})</label>
-          
-          <!-- Renderizado dinámico según el tipo -->
-          <ng-container [ngSwitch]="task.tipo">
-            
-            <input *ngSwitchCase="'TEXTO'" type="text" [(ngModel)]="respuestas[getInputName(nodo.key, task.nombre)]" class="form-control">
-            
-            <input *ngSwitchCase="'NUMERO'" type="number" [(ngModel)]="respuestas[getInputName(nodo.key, task.nombre)]" class="form-control">
-            
-            <input *ngSwitchCase="'FECHA'" type="date" [(ngModel)]="respuestas[getInputName(nodo.key, task.nombre)]" class="form-control">
-            
-            <input *ngSwitchCase="'CHECKBOX'" type="checkbox" [(ngModel)]="respuestas[getInputName(nodo.key, task.nombre)]">
+            <ng-container [ngSwitch]="task.tipo">
+              <!-- Tipos de Input -->
+              <input *ngSwitchCase="'TEXTO'" type="text" [(ngModel)]="respuestas[getInputName(nodo.key, task.nombre)]"
+                class="form-control" placeholder="Escribe aquí...">
 
-            <ng-container *ngSwitchCase="'IMAGEN'">
-              <input type="file" accept="image/*" class="form-control" 
-                     (change)="onFileSelected($event, nodo.key, task.nombre)"
-                     [disabled]="uploadingFields.has(getInputName(nodo.key, task.nombre))">
-              <div *ngIf="uploadingFields.has(getInputName(nodo.key, task.nombre))" class="text-info mt-1">
-                <small><i class="bi bi-hourglass-split"></i> Subiendo imagen...</small>
+              <input *ngSwitchCase="'NUMERO'" type="number"
+                [(ngModel)]="respuestas[getInputName(nodo.key, task.nombre)]" class="form-control" placeholder="0">
+
+              <input *ngSwitchCase="'FECHA'" type="date" [(ngModel)]="respuestas[getInputName(nodo.key, task.nombre)]"
+                class="form-control">
+
+              <div *ngSwitchCase="'CHECKBOX'" class="form-check">
+                <input type="checkbox" [(ngModel)]="respuestas[getInputName(nodo.key, task.nombre)]"
+                  class="form-check-input">
               </div>
-              <div *ngIf="respuestas[getInputName(nodo.key, task.nombre)]" class="mt-2">
-                <img [src]="respuestas[getInputName(nodo.key, task.nombre)]" alt="Preview" class="img-thumbnail" style="max-height: 150px;">
-              </div>
+
+              <ng-container *ngSwitchCase="'IMAGEN'">
+                <div class="file-upload-zone">
+                  <input type="file" accept="image/*" class="form-control-file"
+                    (change)="onFileSelected($event, nodo.key, task.nombre)"
+                    [disabled]="uploadingFields.has(getInputName(nodo.key, task.nombre))">
+                  <div *ngIf="uploadingFields.has(getInputName(nodo.key, task.nombre))" class="upload-loading">
+                    Subiendo imagen...
+                  </div>
+                  <div *ngIf="respuestas[getInputName(nodo.key, task.nombre)]" class="preview-img">
+                    <img [src]="respuestas[getInputName(nodo.key, task.nombre)]" alt="Preview">
+                  </div>
+                </div>
+              </ng-container>
+
+              <ng-container *ngSwitchCase="'DOCUMENTO'">
+                <div class="file-upload-zone">
+                  <input type="file" accept=".pdf,.doc,.docx" class="form-control-file"
+                    (change)="onFileSelected($event, nodo.key, task.nombre)"
+                    [disabled]="uploadingFields.has(getInputName(nodo.key, task.nombre))">
+                  <div *ngIf="uploadingFields.has(getInputName(nodo.key, task.nombre))" class="upload-loading">
+                    Subiendo documento...
+                  </div>
+                  <a *ngIf="respuestas[getInputName(nodo.key, task.nombre)]"
+                    [href]="respuestas[getInputName(nodo.key, task.nombre)]" target="_blank" class="btn-link">
+                    <i class="bi bi-file-earmark-text"></i> Ver Documento
+                  </a>
+                </div>
+              </ng-container>
+
+              <input *ngSwitchDefault type="text" [(ngModel)]="respuestas[getInputName(nodo.key, task.nombre)]"
+                class="form-control">
             </ng-container>
+          </div>
 
-            <ng-container *ngSwitchCase="'DOCUMENTO'">
-              <input type="file" accept=".pdf,.doc,.docx" class="form-control"
-                     (change)="onFileSelected($event, nodo.key, task.nombre)"
-                     [disabled]="uploadingFields.has(getInputName(nodo.key, task.nombre))">
-              <div *ngIf="uploadingFields.has(getInputName(nodo.key, task.nombre))" class="text-info mt-1">
-                <small><i class="bi bi-hourglass-split"></i> Subiendo documento...</small>
-              </div>
-              <div *ngIf="respuestas[getInputName(nodo.key, task.nombre)]" class="mt-2">
-                <a [href]="respuestas[getInputName(nodo.key, task.nombre)]" target="_blank" class="btn btn-sm btn-outline-info">
-                  <i class="bi bi-file-earmark-arrow-down"></i> Ver Documento
-                </a>
-              </div>
-            </ng-container>
-            
-            <!-- Default (por si acaso) -->
-            <input *ngSwitchDefault type="text" [(ngModel)]="respuestas[getInputName(nodo.key, task.nombre)]" class="form-control">
-          </ng-container>
-        </div>
-
-        <button class="btn btn-primary btn-block" (click)="avanzarNodo(nodo.key)">
-          Completar y Avanzar
-        </button>
-      </div>
-
-      <!-- Tareas tipo CONDITIONAL -->
-      <div *ngIf="nodo.category === 'Conditional'" class="task-body condicional">
-        <p><strong>Decisión requerida:</strong> ¿{{ nodo.text }}?</p>
-        <div class="decision-buttons">
-          <button *ngFor="let opcion of getOpcionesCondicional(nodo.key)" 
-                  class="btn btn-outline-success" 
-                  (click)="avanzarNodo(nodo.key, opcion)">
-            {{ opcion | uppercase }}
+          <button class="btn btn-primary btn-lg w-100" (click)="avanzarNodo(nodo.key)">
+            Completar y Avanzar <i class="bi bi-arrow-right"></i>
           </button>
         </div>
-      </div>
-      
-      <!-- Nodos de Finalización automática -->
-      <div *ngIf="nodo.category === 'Final'" class="task-body">
-        <p>Llegaste al final del proceso.</p>
-        <button class="btn btn-success btn-block" (click)="avanzarNodo(nodo.key)">
-          Terminar Trámite
-        </button>
-      </div>
 
+        <!-- CUERPO: CONDITIONAL -->
+        <div *ngIf="nodo.category === 'Conditional'" class="task-body conditional-body">
+          <div class="conditional-icon"><i class="bi bi-question-square"></i></div>
+          <h4>Decisión requerida</h4>
+          <p>¿{{ nodo.text }}?</p>
+          <div class="decision-buttons">
+            <button *ngFor="let opcion of getOpcionesCondicional(nodo.key)" class="btn btn-outline-light"
+              (click)="avanzarNodo(nodo.key, opcion)">
+              {{ opcion }}
+            </button>
+          </div>
+        </div>
+
+        <!-- CUERPO: FINAL -->
+        <div *ngIf="nodo.category === 'Final'" class="task-body text-center">
+          <i class="bi bi-check-circle-fill success-icon"></i>
+          <p>Llegaste al final del proceso.</p>
+          <button class="btn btn-success btn-lg" (click)="avanzarNodo(nodo.key)">
+            Terminar Trámite
+          </button>
+        </div>
+
+      </div>
     </div>
   </div>
 </div>

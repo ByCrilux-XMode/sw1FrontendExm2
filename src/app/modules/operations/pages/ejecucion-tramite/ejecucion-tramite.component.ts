@@ -12,7 +12,7 @@ import { DiagramConfig } from '../../../organization/pages/editor-politicas/diag
 @Component({
   selector: 'app-ejecucion-tramite',
   standalone: true,
-  imports: [CommonModule, FormsModule, DiagramComponent],
+  imports: [CommonModule, FormsModule],
   templateUrl: './ejecucion-tramite.component.html',
   styleUrls: ['./ejecucion-tramite.component.css'],
   encapsulation: ViewEncapsulation.None
@@ -180,11 +180,13 @@ export class EjecucionTramiteComponent implements OnInit {
       next: (res) => {
         this.respuestas[fieldName] = res.url;
         this.uploadingFields.delete(fieldName);
+        this.cdr.detectChanges();
       },
       error: (err) => {
         console.error('Error subiendo archivo', err);
         alert('Error al subir el archivo');
         this.uploadingFields.delete(fieldName);
+        this.cdr.detectChanges();
       }
     });
   }
